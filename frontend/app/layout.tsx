@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import CursorGlow from "@/components/CursorGlow";
+import Footer from "@/components/Footer";
 import NavBar from "@/components/NavBar";
 import { AuthProvider } from "@/lib/auth";
 import { ThemeProvider, themeInitScript } from "@/lib/theme";
@@ -32,6 +33,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <NavBar />
               </div>
               <main className="px-5 py-10 sm:px-8 print:p-0">{children}</main>
+              <Footer />
             </div>
           </AuthProvider>
         </ThemeProvider>
