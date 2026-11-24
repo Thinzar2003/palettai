@@ -1,0 +1,29 @@
+# Render Blueprint: creates the FastAPI backend as a free web service.
+# Dashboard → New → Blueprint → pick this repo. You'll be asked for the secret values.
+services:
+  - type: web
+    name: palettai-api
+    runtime: python
+    plan: free
+    region: singapore          # closest Render region to Thailand
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.7"
+      - key: SECRET_KEY
+        generateValue: true      # Render creates a strong random key once
+      - key: COOKIE_SECURE
+        value: "true"
+      - key: DATABASE_URL        # paste your Neon connection string
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: LLM_PROVIDERS
+        value: gemini,groq,openrouter

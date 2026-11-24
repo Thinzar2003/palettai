@@ -1,0 +1,80 @@
+@import "tailwindcss";
+
+/* `dark:` utilities follow the .dark class on <html> (set by the theme toggle). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: "Inter", "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Bricolage Grotesque", "Prompt", ui-sans-serif, system-ui, sans-serif;
+  --color-studio-ink: #17151f;
+  --color-studio-paper: #fbf8f3;
+  --color-studio-accent: #ff5a36;
+  --color-studio-glow: #ff5a36;
+  --color-on-accent: #ffffff; /* text on accent buttons: white in both themes */
+}
+
+/*
+ * Dark mode: the app's UI is written with white surfaces and black text at various
+ * opacities (bg-white, text-black/60, border-black/10 …). Swapping the two base
+ * colours flips the whole interface at once. Brand previews use inline hex colours,
+ * so they always show the brand's real colours.
+ */
+.dark {
+  color-scheme: dark;
+  --color-white: #16161f;
+  --color-black: #f3f0ea;
+  --color-studio-ink: #f3f0ea;
+  --color-studio-paper: #0b0b11;
+  --color-studio-glow: #7c5cff;
+}
+
+html,
+body {
+  background: var(--color-studio-paper);
+  color: var(--color-studio-ink);
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* soft grain so the canvas feels like paper */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: radial-gradient(#000 0.5px, transparent 0.5px);
+  background-size: 3px 3px;
+  z-index: 0;
+}
+.dark body::before {
+  opacity: 0.06;
+  background-image: radial-gradient(#fff 0.5px, transparent 0.5px);
+}
+
+/* Status colours that Tailwind's palette keeps light: soften them in dark mode. */
+.dark .bg-red-50 { background: rgb(127 29 29 / 0.35); }
+.dark .text-red-700, .dark .text-red-600 { color: #fca5a5; }
+.dark .bg-amber-50 { background: rgb(120 53 15 / 0.35); }
+.dark .text-amber-800 { color: #fcd34d; }
+.dark .bg-emerald-100 { background: rgb(6 78 59 / 0.5); }
+.dark .text-emerald-700, .dark .text-emerald-600 { color: #6ee7b7; }
+.dark .border-red-200 { border-color: rgb(248 113 113 / 0.4); }
+.dark .hover\:bg-red-50:hover { background: rgb(127 29 29 / 0.35); }
+
+/* Brand guide: print as clean A4 pages */
+@media print {
+  @page { size: A4; margin: 0; }
+  html, body { background: #fff !important; }
+  body::before { display: none; }
+  .no-print { display: none !important; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
