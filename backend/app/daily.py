@@ -76,7 +76,9 @@ def upcoming(start: date, days: int = 21) -> list[dict]:
 def context(now: datetime | None = None) -> dict:
     d = today_bkk(now)
     hour = (now or datetime.now(BKK)).astimezone(BKK).hour
-    part = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
+    # Bangkok time: 05-11 morning, 12-16 afternoon, 17-21 evening, 22-04 night
+    part = ("night" if hour < 5 else "morning" if hour < 12 else "afternoon" if hour < 17
+            else "evening" if hour < 22 else "night")
     nxt = upcoming(d, 21)
     pay = next((e["days_until"] for e in nxt if e["kind"] == "payday"), None)
     return {

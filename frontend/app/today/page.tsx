@@ -9,9 +9,10 @@ import TodayPostTool from "@/components/daily/TodayPostTool";
 import RequireAuth from "@/components/RequireAuth";
 import Spinner from "@/components/Spinner";
 import Tilt from "@/components/Tilt";
+import { EventStrip, Greeting } from "@/components/today/TodayHeader";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
-import { timeAgo, type BrandKit, type BrandSummary, type Creation, type DailyContext, type DayEvent } from "@/lib/types";
+import { timeAgo, type BrandKit, type BrandSummary, type Creation, type DailyContext } from "@/lib/types";
 import { useGoogleFonts } from "@/lib/useGoogleFonts";
 
 type Tool = "post" | "promo" | "reply";
@@ -20,8 +21,6 @@ const TOOLS: { id: Tool; icon: string; title: string; text: string }[] = [
   { id: "promo", icon: "🏷️", title: "Promo maker", text: "Poster, story, Facebook & LINE message" },
   { id: "reply", icon: "💬", title: "Reply helper", text: "Answer reviews and chats nicely" },
 ];
-const GREETING = { morning: ["Good morning", "อรุณสวัสดิ์"], afternoon: ["Good afternoon", "สวัสดีตอนบ่าย"], evening: ["Good evening", "สวัสดีตอนเย็น"] };
-const EVENT_ICON: Record<DayEvent["kind"], string> = { holiday: "🎉", observance: "📌", sale: "🛍️", payday: "💰" };
 const STORE_KEY = "palettai.brand";
 
 function TodayScreen() {
@@ -59,6 +58,19 @@ function TodayScreen() {
         setBrandId(b.find((x) => x.id === saved)?.id ?? b[0]?.id ?? null);
       })
       .catch((e) => setError(e.message));
+  }, []);
+
+  // Bangkok time moves on while the page is open: refresh the greeting/events every 5 minutes
+  // and whenever the owner comes back to the tab (no AI is used for this).
+  useEffect(() => {
+    const update = () => api.today().then(setCtx).catch(() => undefined);
+    const timer = setInterval(update, 5 * 60 * 1000);
+    const onVisible = () => document.visibilityState === "visible" && update();
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   useEffect(() => {
@@ -103,24 +115,11 @@ function TodayScreen() {
     );
   }
 
-  const [hello, helloTh] = GREETING[ctx.part_of_day];
-  const events = [...ctx.today, ...ctx.upcoming];
-
   return (
     <div className="mx-auto max-w-5xl space-y-8">
       {/* Greeting */}
       <section className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-sm text-black/50">
-            {ctx.weekday} · {new Date(ctx.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long" })} ·{" "}
-            <span style={{ fontFamily: "'Prompt', sans-serif" }}>{ctx.weekday_th}</span>
-          </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            className="font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
-            {hello}, {user?.name?.split(" ")[0]} {ctx.part_of_day === "evening" ? "🌙" : "☀️"}
-          </motion.h1>
-          <p className="mt-1 text-black/55" style={{ fontFamily: "'Prompt', sans-serif" }}>{helloTh} · What shall we post today?</p>
-        </div>
+        <Greeting ctx={ctx} name={user?.name?.split(" ")[0] ?? ""} />
         {brands.length > 1 ? (
           <select value={brandId ?? ""} onChange={(e) => { setBrandId(Number(e.target.value)); setTool(null); }}
             className="min-h-11 rounded-2xl border border-black/10 bg-white px-4 text-sm font-medium">
@@ -134,24 +133,7 @@ function TodayScreen() {
       </section>
 
       {/* Events */}
-      {events.length > 0 && (
-        <section className="flex gap-2 overflow-x-auto pb-1">
-          {ctx.days_to_payday === 0 && (
-            <span className="shrink-0 rounded-2xl bg-emerald-100 px-4 py-2 text-sm font-medium text-emerald-700">💰 Payday today: people are spending!</span>
-          )}
-          {events.map((e, i) => (
-            <motion.button key={`${e.date}-${e.name_en}`} type="button" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }} onClick={() => open("post", { event: e.name_en })}
-              title="Make a post about this"
-              className="shrink-0 rounded-2xl border border-black/10 bg-white px-4 py-2 text-left text-sm transition hover:border-studio-accent">
-              <span className="font-medium">{EVENT_ICON[e.kind]} {e.name_en}</span>
-              <span className="block text-xs text-black/45">
-                {e.days_until === 0 ? "Today" : e.days_until === 1 ? "Tomorrow" : `In ${e.days_until} days`} · tap for a post
-              </span>
-            </motion.button>
-          ))}
-        </section>
-      )}
+      <EventStrip ctx={ctx} onPick={(name) => open("post", { event: name })} />
 
       {/* Tools */}
       <section className="grid gap-4 sm:grid-cols-3">

@@ -164,7 +164,7 @@ export interface DailyContext {
   weekday: string;
   weekday_th: string;
   pretty: string;
-  part_of_day: "morning" | "afternoon" | "evening";
+  part_of_day: "morning" | "afternoon" | "evening" | "night";
   is_weekend: boolean;
   days_to_payday: number | null;
   today: DayEvent[];

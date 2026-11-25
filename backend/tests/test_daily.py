@@ -23,3 +23,13 @@ def test_context_uses_bangkok_time():
     assert ctx["upcoming"][0]["name_en"].startswith("Payday") and ctx["upcoming"][0]["days_until"] == 5
     text = context_text(ctx)
     assert "Wednesday 25 November 2026" in text and "Father's Day in 10 days" in text
+
+
+def test_parts_of_day_in_bangkok():
+    at = lambda utc: context(datetime.fromisoformat(utc))
+    assert at("2026-11-25T03:00:00+00:00")["part_of_day"] == "morning"     # 10:00 BKK
+    assert at("2026-11-25T07:00:00+00:00")["part_of_day"] == "afternoon"   # 14:00 BKK
+    assert at("2026-11-25T12:00:00+00:00")["part_of_day"] == "evening"     # 19:00 BKK
+    assert at("2026-11-25T16:30:00+00:00")["part_of_day"] == "night"       # 23:30 BKK
+    late = at("2026-11-24T19:00:00+00:00")                                  # 02:00 BKK, already the 25th
+    assert late["part_of_day"] == "night" and late["date"] == "2026-11-25"
