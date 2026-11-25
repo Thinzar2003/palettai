@@ -3,12 +3,15 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
 from ..db import get_db
-from ..deps import check_quota, current_user
+from ..deps import check_quota, current_user, record_usage
+from ..fonts import BODY_FONTS, HEADING_FONTS, THAI_FONTS
 from ..llm import LLMError, NotConfigured
 from ..models import Brand, BrandVersion, User
-from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, PublicBrand,
-                       RegenerateIn, VersionOut)
-from ..service import create_brand, locked_parts
+from ..logo_styles import LOGO_STYLES
+from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, KitEdit, LogosIn, PublicBrand,
+                       RefineIn, RegenerateIn, SelectIcon, VersionOut)
+from ..service import (apply_edit, create_brand, generate_icons, generate_social, locked_parts,
+                       refine_kit)
 from ..utils import slugify
 
 router = APIRouter(prefix="/api", tags=["brands"])
@@ -47,9 +50,10 @@ def _own_brand(db: Session, user: User, brand_id: int) -> Brand:
     return brand
 
 
-async def _generate(brief: Brief, keep: dict | None = None):
+async def _ai(coro):
+    """Run an AI coroutine and turn provider errors into clean HTTP errors."""
     try:
-        return await create_brand(brief, keep)
+        return await coro
     except NotConfigured as e:
         raise HTTPException(status_code=503, detail=str(e))
     except LLMError as e:
@@ -75,7 +79,8 @@ def list_brands(user: User = Depends(current_user), db: Session = Depends(get_db
 @router.post("/brands", response_model=BrandDetail, status_code=201)
 async def create(brief: Brief, user: User = Depends(current_user), db: Session = Depends(get_db)):
     check_quota(db, user)
-    kit = await _generate(brief)
+    kit = await _ai(create_brand(brief))
+    record_usage(db, user, "brand")
     brand = Brand(user_id=user.id, name=kit.brand_name[:80], slug=slugify(kit.brand_name),
                   brief=brief.model_dump())
     db.add(brand)
@@ -96,13 +101,88 @@ async def regenerate(brand_id: int, body: RegenerateIn,
     check_quota(db, user)
     brief = body.brief or Brief(**brand.brief)
     keep = locked_parts(brand.current.kit, list(body.locked))
-    kit = await _generate(brief, keep)
+    keep.setdefault("social_posts", brand.current.kit.get("social_posts", []))  # posts survive redesigns
+    kit = await _ai(create_brand(brief, keep))
+    record_usage(db, user, "regenerate")
     if body.brief:
         brand.brief = body.brief.model_dump()
     note = f"Regenerated (kept {', '.join(body.locked)})" if body.locked else "Regenerated"
     _add_version(db, brand, kit.model_dump(), list(body.locked), note)
     db.commit()
     return _detail(_own_brand(db, user, brand_id))
+
+
+@router.patch("/brands/{brand_id}/kit", response_model=BrandDetail)
+def edit_kit(brand_id: int, body: KitEdit, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Hand edits create a new version, so they can always be undone from History."""
+    brand = _own_brand(db, user, brand_id)
+    kit = apply_edit(Brief(**brand.brief), brand.current.kit, body)
+    changed = ", ".join(body.model_dump(exclude_none=True).keys()) or "nothing"
+    _add_version(db, brand, kit.model_dump(), [], f"Edited by hand ({changed})"[:120])
+    if body.brand_name:
+        brand.name = body.brand_name.strip()
+    db.commit()
+    return _detail(_own_brand(db, user, brand_id))
+
+
+@router.post("/brands/{brand_id}/refine", response_model=BrandDetail)
+async def refine(brand_id: int, body: RefineIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    brand = _own_brand(db, user, brand_id)
+    check_quota(db, user)
+    kit = await _ai(refine_kit(Brief(**brand.brief), brand.current.kit, body.instruction.strip()))
+    record_usage(db, user, "refine")
+    _add_version(db, brand, kit.model_dump(), [], f"AI: {body.instruction.strip()}"[:120])
+    db.commit()
+    return _detail(_own_brand(db, user, brand_id))
+
+
+@router.post("/brands/{brand_id}/logos", response_model=BrandDetail)
+async def make_logos(brand_id: int, body: LogosIn | None = None,
+                     user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Generate 3 logo symbols (one per style) and attach them to the current version."""
+    body = body or LogosIn()
+    brand = _own_brand(db, user, brand_id)
+    check_quota(db, user)
+    icons = await _ai(generate_icons(Brief(**brand.brief), brand.current.kit, list(body.styles), body.match_colors))
+    record_usage(db, user, "logos")
+    current = brand.current
+    current.kit = {**current.kit, "icons": icons, "selected_icon": 0}  # reassign so the JSON change is saved
+    db.commit()
+    return _detail(_own_brand(db, user, brand_id))
+
+
+@router.post("/brands/{brand_id}/logos/select", response_model=BrandDetail)
+def select_logo(brand_id: int, body: SelectIcon, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    brand = _own_brand(db, user, brand_id)
+    current = brand.current
+    icons = current.kit.get("icons") or []
+    if body.index is not None and body.index >= len(icons):
+        raise HTTPException(status_code=400, detail="No such icon")
+    current.kit = {**current.kit, "selected_icon": body.index}
+    db.commit()
+    return _detail(_own_brand(db, user, brand_id))
+
+
+@router.post("/brands/{brand_id}/social", response_model=BrandDetail)
+async def make_social(brand_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    brand = _own_brand(db, user, brand_id)
+    check_quota(db, user)
+    posts = await _ai(generate_social(Brief(**brand.brief), brand.current.kit))
+    record_usage(db, user, "social")
+    current = brand.current
+    current.kit = {**current.kit, "social_posts": posts}
+    db.commit()
+    return _detail(_own_brand(db, user, brand_id))
+
+
+@router.get("/logo-styles")
+def logo_styles():
+    return [{"id": k, "label": v["label"]} for k, v in LOGO_STYLES.items()]
+
+
+@router.get("/fonts")
+def fonts():
+    return {"heading": HEADING_FONTS, "body": BODY_FONTS, "thai": THAI_FONTS}
 
 
 @router.post("/brands/{brand_id}/versions/{number}/restore", response_model=BrandDetail)

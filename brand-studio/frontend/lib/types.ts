@@ -33,6 +33,49 @@ export interface BrandKit {
   contrast: { pair: string; ratio: number; passes: boolean; fixed: boolean }[];
   source: string; // gemini | groq | openrouter | anthropic | openai
   model: string;
+  icons: LogoIcon[];
+  selected_icon: number | null;
+  social_posts: SocialPost[];
+}
+
+export type LogoStyle = "minimal" | "geometric" | "mascot" | "emblem" | "lettermark" | "line" | "thai";
+
+export interface LogoIcon {
+  name: string;
+  concept: string;
+  style: LogoStyle | "";
+  source: "flux" | "svg"; // flux = image model, traced to vector; svg = drawn as code
+  svg: string; // sanitised by the backend
+}
+
+export type PostLayout = "quote" | "promo" | "tip" | "announcement";
+
+export interface SocialPost {
+  day: number;
+  theme: string;
+  layout: PostLayout;
+  headline: string;
+  subtext: string;
+  cta: string;
+  caption_en: string;
+  caption_th: string;
+  hashtags: string[];
+}
+
+export interface KitEdit {
+  brand_name?: string;
+  tagline?: string;
+  tone?: string;
+  story?: string;
+  palette?: PaletteColor[];
+  fonts?: { heading: string; body: string; thai: string; reason?: string };
+  slogans?: { en: string; th: string }[];
+}
+
+export interface FontLists {
+  heading: string[];
+  body: string[];
+  thai: string[];
 }
 
 export interface User {

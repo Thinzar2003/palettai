@@ -1,4 +1,6 @@
-# AI Brand Studio ✨
+# Palettai ✦ AI brand designer
+
+*Palette + ไทย + AI.*
 
 A full-stack AI web app: describe a business and get a complete brand kit (palette, Thai + English fonts, slogans, logo and mockups), revealed with animation. Save brands to your account, keep a version history, lock the parts you love and regenerate the rest, then share a public brand page.
 
@@ -12,6 +14,13 @@ A full-stack AI web app: describe a business and get a complete brand kit (palet
 - **Version history:** every generation is saved. Preview any version and restore it.
 - **Share:** make a brand public and send the `/b/<slug>` link to a client.
 - **Export:** download any version as JSON.
+- **AI logo pipeline:** pick up to 3 styles (minimal, geometric, mascot, emblem, lettermark, line art, Thai motif). The text AI plans a distinct concept per style, **FLUX** (Cloudflare Workers AI) draws it, then the backend removes the background, traces it to SVG with **vtracer**, snaps every colour to the brand palette and sanitises the result. Falls back to LLM-drawn SVG when image generation is unavailable. Download as SVG, PNG, or a logo + name lockup.
+- **Social post pack:** 7 days of Instagram/Facebook posts in 4 layouts, with Thai/English captions and hashtags. Export each as a 1080×1080 PNG.
+- **Brand guide PDF:** a 6-page A4 brand guide (cover, story, logo, colours, typography, voice & social), saved via the browser's "Save as PDF".
+- **Edit by hand:** colour pickers, font pickers and text fields. Every save is a new version.
+- **AI refine chat:** "make it warmer", "more premium" — the AI edits only what you ask.
+- **Light / dark mode** with no flash on load.
+- **3D & interactive UI:** cursor-following glow, 3D tilt with glare on cards, a draggable spinning 3D logo coin, and animated page and tab transitions.
 - **Daily quota per user:** protects your free AI limits (default 20 generations per 24 hours).
 - **Resilient free AI:** retries busy models, falls back Flash → Flash-Lite → Groq → OpenRouter.
 
@@ -22,6 +31,7 @@ Browser ──► Next.js (localhost:3000)
               │  /api/*  ── proxied ──►  FastAPI (127.0.0.1:8000)
                                             ├─ /api/auth/*     register · login · logout · me
                                             ├─ /api/brands/*   CRUD · regenerate · versions · restore
+                                            │                  kit edits · refine · logos · social
                                             ├─ /api/public/*   shared brand pages
                                             ├─ SQLAlchemy ──► SQLite (dev) / PostgreSQL (prod)
                                             └─ LLM chain ───► Gemini → Groq → OpenRouter
@@ -97,6 +107,10 @@ backend/app/
   service.py         AI output → validated kit, lock/merge logic
   llm.py             free-provider chain with retries/fallback
   prompts.py · colors.py · fonts.py · mock.py
+  svg.py             whitelist sanitiser for AI-generated SVG
+  imagegen.py        FLUX image generation (Cloudflare Workers AI)
+  vectorize.py       background removal → vtracer → palette snapping
+  logo_styles.py     logo style directions + prompt builder
 frontend/
   app/               pages (landing, auth, dashboard, new brand, brand workspace, public page)
   components/        BrandWorkspace, LockBar, VersionHistory, BrandCard, BrandReveal, PalettePour, …
@@ -106,6 +120,6 @@ frontend/
 ## Roadmap
 - [x] Stage 1: brief → AI brand → animated reveal
 - [x] Stage 2: accounts, database, dashboard, versions, lock & regenerate, share pages
-- [ ] Stage 3: AI logo icon (image model) + SVG/PNG export, logo morph animation
-- [ ] Stage 4: brand-guide PDF, 7-day social post pack (background jobs)
+- [x] Stage 3: AI SVG logo icons, social post pack, brand guide PDF, hand editing, AI refine, dark mode, 3D UI
+- [ ] Stage 4: background jobs for long AI tasks, image-model mockups
 - [ ] Stage 5: deploy (Vercel + Render/Railway + Postgres), Alembic migrations, rate limiting by IP

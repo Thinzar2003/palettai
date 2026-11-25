@@ -1,4 +1,4 @@
-import type { BrandDetail, BrandSummary, Brief, LockPart, PublicBrand, User } from "./types";
+import type { BrandDetail, BrandSummary, Brief, FontLists, KitEdit, LockPart, LogoStyle, PublicBrand, User } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -44,6 +44,16 @@ export const api = {
   updateBrand: (id: number, patch: { name?: string; is_public?: boolean }) =>
     request<BrandDetail>(`/brands/${id}`, { method: "PATCH", body: JSON.stringify(patch) }),
   deleteBrand: (id: number) => request<void>(`/brands/${id}`, { method: "DELETE" }),
+
+  // editing & extras
+  editKit: (id: number, edit: KitEdit) =>
+    request<BrandDetail>(`/brands/${id}/kit`, { method: "PATCH", body: JSON.stringify(edit) }),
+  refine: (id: number, instruction: string) => post<BrandDetail>(`/brands/${id}/refine`, { instruction }),
+  makeLogos: (id: number, styles: LogoStyle[] = [], matchColors = true) =>
+    post<BrandDetail>(`/brands/${id}/logos`, { styles, match_colors: matchColors }),
+  selectLogo: (id: number, index: number | null) => post<BrandDetail>(`/brands/${id}/logos/select`, { index }),
+  makeSocial: (id: number) => post<BrandDetail>(`/brands/${id}/social`),
+  fonts: () => request<FontLists>("/fonts"),
 
   // public
   publicBrand: (slug: string) => request<PublicBrand>(`/public/${encodeURIComponent(slug)}`),

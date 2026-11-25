@@ -47,6 +47,26 @@ class ContrastCheck(BaseModel):
     fixed: bool = False
 
 
+class LogoIcon(BaseModel):
+    name: str = ""
+    concept: str = ""
+    style: str = ""          # minimal | geometric | mascot | emblem | lettermark | line | thai
+    source: str = "svg"      # flux = drawn by the image model and traced; svg = drawn as SVG code by the LLM
+    svg: str
+
+
+class SocialPost(BaseModel):
+    day: int
+    theme: str = ""
+    layout: Literal["quote", "promo", "tip", "announcement"] = "quote"
+    headline: str = ""
+    subtext: str = ""
+    cta: str = ""
+    caption_en: str = ""
+    caption_th: str = ""
+    hashtags: list[str] = Field(default_factory=list)
+
+
 class BrandKit(BaseModel):
     brand_name: str
     tagline: str
@@ -62,6 +82,9 @@ class BrandKit(BaseModel):
     contrast: list[ContrastCheck]
     source: str   # provider that produced it: gemini | groq | openrouter | anthropic | openai | mock
     model: str = ""
+    icons: list[LogoIcon] = Field(default_factory=list)       # AI logo symbols (sanitised SVG)
+    selected_icon: int | None = None
+    social_posts: list[SocialPost] = Field(default_factory=list)
 
 
 # ── Accounts ────────────────────────────────────────────────────────────────
@@ -126,3 +149,31 @@ class PublicBrand(BaseModel):
     name: str
     slug: str
     kit: BrandKit
+
+
+# ── Editing ─────────────────────────────────────────────────────────────────
+class KitEdit(BaseModel):
+    """Hand edits. Any field left out stays as it is."""
+    brand_name: str | None = Field(default=None, min_length=1, max_length=80)
+    tagline: str | None = Field(default=None, max_length=160)
+    tone: str | None = Field(default=None, max_length=400)
+    story: str | None = Field(default=None, max_length=800)
+    palette: list[PaletteColor] | None = Field(default=None, min_length=5, max_length=5)
+    fonts: Fonts | None = None
+    slogans: list[Slogan] | None = Field(default=None, max_length=6)
+
+
+class RefineIn(BaseModel):
+    instruction: str = Field(min_length=3, max_length=300)
+
+
+LogoStyle = Literal["minimal", "geometric", "mascot", "emblem", "lettermark", "line", "thai"]
+
+
+class LogosIn(BaseModel):
+    styles: list[LogoStyle] = Field(default_factory=list, max_length=3)   # empty = choose automatically
+    match_colors: bool = True                                             # snap traced colours to the palette
+
+
+class SelectIcon(BaseModel):
+    index: int | None = Field(default=None, ge=0, le=9)   # None = use the monogram badge
