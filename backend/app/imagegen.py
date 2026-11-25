@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import os
+import re
 
 import httpx
 
@@ -13,9 +14,29 @@ class ImageGenError(RuntimeError):
     pass
 
 
+def _clean(value: str | None) -> str:
+    """IDs and tokens never contain whitespace: drop any spaces/tabs/line breaks and quotes
+    picked up while copy-pasting (they make the HTTP request invalid before it's even sent)."""
+    v = re.sub(r"\s+", "", value or "").strip("\"'")
+    return re.sub(r"^bearer", "", v, flags=re.I)  # in case "Bearer xxx" was pasted
+
+
 def _creds() -> tuple[str, str]:
-    clean = lambda v: (v or "").strip().strip("\"'").strip()
-    return clean(os.getenv("CLOUDFLARE_ACCOUNT_ID")), clean(os.getenv("CLOUDFLARE_API_TOKEN"))
+    return _clean(os.getenv("CLOUDFLARE_ACCOUNT_ID")), _clean(os.getenv("CLOUDFLARE_API_TOKEN"))
+
+
+def credentials_problem() -> str | None:
+    """A human-readable problem with the Cloudflare settings (never includes the secret itself)."""
+    account, token = _creds()
+    if not account or not token:
+        return "add CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN"
+    if not re.fullmatch(r"[0-9a-fA-F]{32}", account):
+        return f"CLOUDFLARE_ACCOUNT_ID looks wrong ({len(account)} characters; it should be 32 letters/numbers)"
+    if not re.fullmatch(r"[A-Za-z0-9_.\-]{20,}", token):
+        bad = sorted({c for c in token if not re.match(r"[A-Za-z0-9_.\-]", c)})
+        return (f"CLOUDFLARE_API_TOKEN looks wrong ({len(token)} characters"
+                + (f", unexpected characters: {' '.join(repr(c) for c in bad[:5])}" if bad else "") + ")")
+    return None
 
 
 def image_model() -> str:
@@ -27,11 +48,17 @@ def image_configured() -> bool:
     return bool(account and token)
 
 
+def image_status() -> str:
+    problem = credentials_problem()
+    return f"off ({problem})" if problem else image_model()
+
+
 async def generate_image(prompt: str, seed: int, steps: int = 6) -> bytes:
     """Returns the generated image bytes (JPEG/PNG)."""
+    problem = credentials_problem()
+    if problem:
+        raise ImageGenError(problem)
     account, token = _creds()
-    if not (account and token):
-        raise ImageGenError("Cloudflare is not configured")
     url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{image_model()}"
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10)) as client:

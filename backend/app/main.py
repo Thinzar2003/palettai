@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from . import config  # noqa: F401  (loads .env first)
 from .db import init_db
-from .imagegen import image_configured, image_model
+from .imagegen import image_status
 from .llm import model_for, provider_chain
 from .routers import auth, brands
 
@@ -42,6 +42,6 @@ def health():
     return {
         "ok": bool(chain),
         "providers": [{"name": n, "model": model_for(n)} for n in chain],
-        "logo_images": image_model() if image_configured() else "off (add CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN)",
+        "logo_images": image_status(),
         "hint": None if chain else "Add GEMINI_API_KEY to backend/.env",
     }
