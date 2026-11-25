@@ -9,6 +9,20 @@ export interface Brief {
   audience?: string | null;
   vibes: string[];
   language: Language;
+  reference?: string | null; // current identity when refreshing an existing business
+}
+
+export interface ImportOut {
+  brief: Brief;
+  found: {
+    source_url: string;
+    title: string;
+    colors: string[];
+    fonts: string[];
+    image: string;
+    from_facebook: boolean;
+    tone: string;
+  };
 }
 
 export interface PaletteColor {

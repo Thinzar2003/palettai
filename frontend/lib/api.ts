@@ -1,4 +1,4 @@
-import type { BrandDetail, BrandSummary, Brief, FontLists, KitEdit, LockPart, LogoStyle, PublicBrand, User } from "./types";
+import type { BrandDetail, BrandSummary, Brief, FontLists, ImportOut, KitEdit, LockPart, LogoStyle, PublicBrand, User } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -37,6 +37,7 @@ export const api = {
   // brands
   listBrands: () => request<BrandSummary[]>("/brands"),
   createBrand: (brief: Brief) => post<BrandDetail>("/brands", brief),
+  importBrief: (url: string | null, text: string | null) => post<ImportOut>("/import-brief", { url, text }),
   getBrand: (id: number) => request<BrandDetail>(`/brands/${id}`),
   regenerate: (id: number, locked: LockPart[], brief?: Brief) =>
     post<BrandDetail>(`/brands/${id}/regenerate`, { locked, brief }),

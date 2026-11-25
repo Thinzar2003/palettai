@@ -3,6 +3,7 @@
 import { motion } from "motion/react";
 import { useState } from "react";
 import type { Brief, Language } from "@/lib/types";
+import ImportPanel from "./ImportPanel";
 
 const VIBES = ["Warm", "Minimal", "Playful", "Premium", "Natural", "Bold", "Retro", "Techy"];
 
@@ -52,13 +53,18 @@ export default function BriefForm({
       }}
       className="mx-auto w-full max-w-2xl rounded-3xl border border-black/10 bg-white/80 p-6 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)] backdrop-blur sm:p-8"
     >
+      <ImportPanel
+        onImported={(b) => setBrief({ ...b, industry: b.industry ?? "", audience: b.audience ?? "" })}
+        onReferenceChange={(reference) => setBrief((b) => ({ ...b, reference }))}
+      />
+
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-black/50">Try an example:</span>
+        <span className="text-black/50">Or try an example:</span>
         {EXAMPLES.map((ex) => (
           <button
             key={ex.business_name}
             type="button"
-            onClick={() => setBrief(ex)}
+            onClick={() => setBrief({ ...ex, reference: null })}
             className="rounded-full border border-black/10 px-3 py-1 transition hover:border-black/30 hover:bg-black/5"
           >
             {ex.business_name}

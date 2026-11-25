@@ -48,6 +48,12 @@ def build_user_prompt(brief, keep: dict | None = None) -> str:
     if brief.vibes:
         lines.append(f"Desired vibe: {', '.join(brief.vibes)}")
     lines.append(f"Language: {brief.language}")
+    if getattr(brief, "reference", None):
+        lines.append(
+            "\nThis is a REFRESH of an existing business. Their current identity: " + brief.reference +
+            "\nKeep it recognisable (evolve their existing colours and feel, don't throw them away) "
+            "but make it more modern, cohesive and accessible."
+        )
     if keep:
         lines.append(
             "\nThe client LOVES these parts. Return them unchanged and design everything else "
@@ -170,3 +176,37 @@ def build_social_prompt(brief, kit: dict) -> str:
         f"Keywords: {', '.join(kit.get('keywords', []))}\n"
         f"Language: {brief.language}"
     )
+
+
+IMPORT_SYSTEM = """You read information about an existing small business (from its website or Facebook page,
+or a description the owner pasted) and fill in a branding brief.
+
+Reply with ONE JSON object and nothing else:
+{
+  "business_name": string,          // the business's real name
+  "description": string,            // 1-3 sentences: what they sell/do, where, what makes them special (max 500 chars)
+  "industry": string,               // e.g. "Café", "Beauty salon", "Online fashion shop"
+  "audience": string,               // who their customers are (max 150 chars)
+  "vibes": [string, ...],           // 1-3 of: Warm, Minimal, Playful, Premium, Natural, Bold, Retro, Techy
+  "language": "en" | "th" | "both", // "both" if the business serves Thai customers, "en" if clearly international only
+  "tone": string                    // one sentence describing how they currently talk to customers
+}
+Only use facts found in the input. If something is unknown, make a sensible short guess from context.
+Ignore cookie banners, navigation menus, login prompts and legal text."""
+
+
+def build_import_prompt(info: dict | None, pasted: str | None) -> str:
+    parts = []
+    if info:
+        parts += [
+            f"Page URL: {info.get('url')}",
+            f"Page title: {info.get('title')}",
+            f"Site name: {info.get('site_name')}",
+            f"Meta description: {info.get('description')}",
+            f"Page language: {info.get('lang')}",
+            f"Headings: {' | '.join(info.get('headings', []))}",
+            f"Page text (excerpt): {info.get('text', '')[:2500]}",
+        ]
+    if pasted:
+        parts.append(f"Description from the owner: {pasted}")
+    return "\n".join(parts)

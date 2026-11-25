@@ -8,9 +8,10 @@ from ..fonts import BODY_FONTS, HEADING_FONTS, THAI_FONTS
 from ..llm import LLMError, NotConfigured
 from ..models import Brand, BrandVersion, User
 from ..logo_styles import LOGO_STYLES
-from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, KitEdit, LogosIn, PublicBrand,
+from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, ImportIn, ImportOut, KitEdit, LogosIn, PublicBrand,
                        RefineIn, RegenerateIn, SelectIcon, VersionOut)
-from ..service import (apply_edit, create_brand, generate_icons, generate_social, locked_parts,
+from ..webimport import WebImportError
+from ..service import (apply_edit, create_brand, generate_icons, generate_social, import_brief, locked_parts,
                        refine_kit)
 from ..utils import slugify
 
@@ -173,6 +174,19 @@ async def make_social(brand_id: int, user: User = Depends(current_user), db: Ses
     current.kit = {**current.kit, "social_posts": posts}
     db.commit()
     return _detail(_own_brand(db, user, brand_id))
+
+
+@router.post("/import-brief", response_model=ImportOut)
+async def import_from_web(body: ImportIn, user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Read an existing website / Facebook page (or pasted text) and pre-fill the brief."""
+    check_quota(db, user)
+    try:
+        result = await _ai(import_brief(body.url, body.text))
+    except WebImportError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    record_usage(db, user, "import")
+    db.commit()
+    return result
 
 
 @router.get("/logo-styles")

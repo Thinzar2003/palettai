@@ -13,6 +13,8 @@ class Brief(BaseModel):
     audience: str | None = Field(default=None, max_length=160)
     vibes: list[str] = Field(default_factory=list, max_length=6)
     language: Literal["en", "th", "both"] = "both"
+    # Existing identity when refreshing a brand imported from a website/Facebook page.
+    reference: str | None = Field(default=None, max_length=1000)
 
 
 class PaletteColor(BaseModel):
@@ -177,3 +179,24 @@ class LogosIn(BaseModel):
 
 class SelectIcon(BaseModel):
     index: int | None = Field(default=None, ge=0, le=9)   # None = use the monogram badge
+
+
+# ── Import from website / Facebook ──────────────────────────────────────────
+class ImportIn(BaseModel):
+    url: str | None = Field(default=None, max_length=500)
+    text: str | None = Field(default=None, max_length=3000)   # pasted description (fallback)
+
+
+class ImportFound(BaseModel):
+    source_url: str = ""
+    title: str = ""
+    colors: list[str] = Field(default_factory=list)
+    fonts: list[str] = Field(default_factory=list)
+    image: str = ""
+    from_facebook: bool = False
+    tone: str = ""
+
+
+class ImportOut(BaseModel):
+    brief: Brief
+    found: ImportFound

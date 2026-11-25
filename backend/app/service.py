@@ -14,9 +14,10 @@ from .mock import mock_brand
 from .imagegen import ImageGenError, generate_image, image_configured
 from .logo_styles import LOGO_STYLES, build_flux_prompt, normalize_styles
 from .vectorize import image_to_logo_svg
-from .prompts import (LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
+from .webimport import WebImportError, read_site
+from .prompts import (IMPORT_SYSTEM, build_import_prompt, LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
                       build_social_prompt, build_user_prompt)
-from .schemas import ROLES, Brief, BrandKit, KitEdit, LogoIcon, SocialPost
+from .schemas import ROLES, Brief, BrandKit, ImportFound, ImportOut, KitEdit, LogoIcon, SocialPost
 from .svg import SvgError, sanitize_svg
 
 log = logging.getLogger("brand")
@@ -282,3 +283,45 @@ def _parse_posts(language: str):
 async def generate_social(brief: Brief, kit: dict) -> list[dict]:
     posts, _, _ = await generate_with_chain(SOCIAL_SYSTEM, build_social_prompt(brief, kit), _parse_posts(brief.language))
     return posts
+
+
+VIBES = {"Warm", "Minimal", "Playful", "Premium", "Natural", "Bold", "Retro", "Techy"}
+
+
+async def import_brief(url: str | None, pasted: str | None) -> ImportOut:
+    """Website / Facebook page (and/or pasted text) → a pre-filled brief + their current identity."""
+    url, pasted = (url or "").strip(), (pasted or "").strip()
+    if not url and len(pasted) < 20:
+        raise WebImportError("Enter a link, or paste a short description (at least 20 characters).")
+    info = await read_site(url) if url else None
+
+    def parse(raw: dict, *_args) -> dict:
+        if not raw.get("business_name") or not raw.get("description"):
+            raise ValueError("Incomplete brief")
+        return raw
+
+    raw, _, _ = await generate_with_chain(IMPORT_SYSTEM, build_import_prompt(info, pasted), parse)
+    found = ImportFound(
+        source_url=(info or {}).get("url", ""), title=(info or {}).get("title", ""),
+        colors=(info or {}).get("colors", []), fonts=(info or {}).get("fonts", []),
+        image=(info or {}).get("image", ""), from_facebook=bool((info or {}).get("from_facebook")),
+        tone=str(raw.get("tone", ""))[:300],
+    )
+    ref = []
+    if found.colors:
+        ref.append("colours " + ", ".join(found.colors))
+    if found.fonts:
+        ref.append("fonts " + ", ".join(found.fonts))
+    if found.tone:
+        ref.append("voice: " + found.tone)
+    language = raw.get("language") if raw.get("language") in ("en", "th", "both") else "both"
+    brief = Brief(
+        business_name=str(raw["business_name"]).strip()[:60],
+        description=str(raw["description"]).strip()[:600],
+        industry=(str(raw.get("industry") or "").strip()[:80] or None),
+        audience=(str(raw.get("audience") or "").strip()[:160] or None),
+        vibes=[v for v in (raw.get("vibes") or []) if v in VIBES][:3],
+        language=language,
+        reference=("; ".join(ref)[:1000] or None),
+    )
+    return ImportOut(brief=brief, found=found)
