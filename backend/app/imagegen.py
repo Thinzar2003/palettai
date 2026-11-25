@@ -53,17 +53,32 @@ def image_status() -> str:
     return f"off ({problem})" if problem else image_model()
 
 
-async def generate_image(prompt: str, seed: int, steps: int = 6) -> bytes:
+def _rejected_property(resp) -> str | None:
+    """'Additional or unevaluated properties '/seed' at '/' not allowed' -> 'seed'."""
+    m = re.search(r"properties '/([A-Za-z_]+)'", resp.text or "")
+    return m.group(1) if m else None
+
+
+async def generate_image(prompt: str, seed: int | None = None, steps: int = 6) -> bytes:
     """Returns the generated image bytes (JPEG/PNG)."""
     problem = credentials_problem()
     if problem:
         raise ImageGenError(problem)
     account, token = _creds()
     url = f"https://api.cloudflare.com/client/v4/accounts/{account}/ai/run/{image_model()}"
+    # Optional settings: if the model's schema rejects one (Cloudflare changes these over time),
+    # drop it and retry, so a removed parameter never breaks logo generation.
+    payload: dict = {"prompt": prompt[:2000], "steps": steps}
+    if seed is not None:
+        payload["seed"] = seed
     try:
         async with httpx.AsyncClient(timeout=httpx.Timeout(60, connect=10)) as client:
-            resp = await client.post(url, headers={"Authorization": f"Bearer {token}"},
-                                     json={"prompt": prompt[:2000], "steps": steps, "seed": seed})
+            for _ in range(3):
+                resp = await client.post(url, headers={"Authorization": f"Bearer {token}"}, json=payload)
+                rejected = _rejected_property(resp) if resp.status_code == 400 else None
+                if not rejected or rejected not in payload or rejected == "prompt":
+                    break
+                payload.pop(rejected)
     except httpx.HTTPError as e:
         raise ImageGenError(f"network error ({type(e).__name__})") from e
 

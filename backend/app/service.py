@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import random
 from typing import Any
 
 from pydantic import ValidationError
@@ -218,7 +217,7 @@ async def _draw_and_trace(concept: dict, kit: dict, match_colors: bool) -> dict:
     palette = {c["role"]: c["hex"] for c in kit.get("palette", [])}
     letter = (kit.get("logo", {}).get("monogram") or kit.get("brand_name", "A"))[:1]
     prompt = build_flux_prompt(concept["style"], concept["subject"], letter, palette)
-    image = await generate_image(prompt, seed=random.randint(1, 2_000_000_000))
+    image = await generate_image(prompt)
     snap = list(palette.values()) if match_colors else None
     svg = await asyncio.to_thread(image_to_logo_svg, image, snap)
     return LogoIcon(name=concept["name"], concept=concept["concept"] or concept["subject"],
