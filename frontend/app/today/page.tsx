@@ -6,12 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import PromoTool from "@/components/daily/PromoTool";
 import ReplyTool from "@/components/daily/ReplyTool";
 import TodayPostTool from "@/components/daily/TodayPostTool";
+import InstallBanner from "@/components/InstallBanner";
 import RequireAuth from "@/components/RequireAuth";
 import Spinner from "@/components/Spinner";
 import Tilt from "@/components/Tilt";
 import { EventStrip, Greeting } from "@/components/today/TodayHeader";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 import { timeAgo, type BrandKit, type BrandSummary, type Creation, type DailyContext } from "@/lib/types";
 import { useGoogleFonts } from "@/lib/useGoogleFonts";
 
@@ -25,6 +27,7 @@ const STORE_KEY = "palettai.brand";
 
 function TodayScreen() {
   const { user, refresh } = useAuth();
+  const { t } = useT();
   const [ctx, setCtx] = useState<DailyContext | null>(null);
   const [brands, setBrands] = useState<BrandSummary[] | null>(null);
   const [brandId, setBrandId] = useState<number | null>(null);
@@ -100,16 +103,16 @@ function TodayScreen() {
   };
 
   if (error) return <p className="mx-auto max-w-xl rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!ctx || !brands) return <Spinner label="Getting your day ready…" />;
+  if (!ctx || !brands) return <Spinner label={t("Getting your day ready…")} />;
 
   if (brands.length === 0) {
     return (
       <div className="mx-auto max-w-lg rounded-3xl border-2 border-dashed border-black/15 p-10 text-center">
         <p className="text-5xl">☀️</p>
-        <h1 className="mt-4 font-display text-2xl font-bold">Let&apos;s set up your brand first</h1>
-        <p className="mt-2 text-black/55">Your daily posts, promos and replies use your brand&apos;s colours, fonts and voice.</p>
+        <h1 className="mt-4 font-display text-2xl font-bold">{t("Let's set up your brand first")}</h1>
+        <p className="mt-2 text-black/55">{t("Your daily posts, promos and replies use your brand's colours, fonts and voice.")}</p>
         <Link href="/brands/new" className="mt-6 inline-block rounded-full bg-studio-accent px-6 py-3 font-semibold text-on-accent">
-          Create my brand ✨
+          {t("Create my brand ✨")}
         </Link>
       </div>
     );
@@ -117,6 +120,8 @@ function TodayScreen() {
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
+      <InstallBanner />
+
       {/* Greeting */}
       <section className="flex flex-wrap items-end justify-between gap-4">
         <Greeting ctx={ctx} name={user?.name?.split(" ")[0] ?? ""} />
@@ -137,16 +142,16 @@ function TodayScreen() {
 
       {/* Tools */}
       <section className="grid gap-4 sm:grid-cols-3">
-        {TOOLS.map((t, i) => (
-          <motion.div key={t.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>
+        {TOOLS.map((tl, i) => (
+          <motion.div key={tl.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 + i * 0.08 }}>
             <Tilt className="h-full rounded-3xl" max={8}>
-              <button type="button" onClick={() => open(t.id)}
+              <button type="button" onClick={() => open(tl.id)}
                 className={`flex h-full w-full flex-col items-start rounded-3xl border-2 p-5 text-left transition active:scale-[0.98] ${
-                  tool === t.id ? "border-studio-accent bg-studio-accent/5" : "border-black/10 bg-white hover:border-black/25"
+                  tool === tl.id ? "border-studio-accent bg-studio-accent/5" : "border-black/10 bg-white hover:border-black/25"
                 }`}>
-                <span className="text-4xl">{t.icon}</span>
-                <span className="mt-3 font-display text-xl font-bold">{t.title}</span>
-                <span className="mt-1 text-sm text-black/55">{t.text}</span>
+                <span className="text-4xl">{tl.icon}</span>
+                <span className="mt-3 font-display text-xl font-bold">{t(tl.title)}</span>
+                <span className="mt-1 text-sm text-black/55">{t(tl.text)}</span>
               </button>
             </Tilt>
           </motion.div>
@@ -160,7 +165,7 @@ function TodayScreen() {
             <motion.section key={`${tool}-${reuse?.id ?? "new"}-${brandId}`} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }} className="rounded-3xl border border-black/10 bg-white/70 p-5 sm:p-7">
               <div className="mb-5 flex items-center justify-between">
-                <h2 className="font-display text-2xl font-bold">{TOOLS.find((t) => t.id === tool)?.icon} {TOOLS.find((t) => t.id === tool)?.title}</h2>
+                <h2 className="font-display text-2xl font-bold">{TOOLS.find((x) => x.id === tool)?.icon} {t(TOOLS.find((x) => x.id === tool)?.title ?? "")}</h2>
                 <button type="button" onClick={() => setTool(null)} className="rounded-full px-3 py-1 text-sm text-black/45 hover:bg-black/5">✕</button>
               </div>
               {!kit || !brandId ? (
@@ -181,15 +186,15 @@ function TodayScreen() {
       {/* History */}
       {history.length > 0 && (
         <section>
-          <h2 className="mb-3 font-display text-xl font-bold">Recently made</h2>
+          <h2 className="mb-3 font-display text-xl font-bold">{t("Recently made")}</h2>
           <div className="grid gap-2 sm:grid-cols-2">
             {history.slice(0, 8).map((c) => (
               <button key={c.id} type="button" onClick={() => open(c.kind, { reuse: c })}
                 className="flex items-center gap-3 rounded-2xl border border-black/10 bg-white px-4 py-3 text-left transition hover:border-black/25">
-                <span className="text-2xl">{TOOLS.find((t) => t.id === c.kind)?.icon}</span>
+                <span className="text-2xl">{TOOLS.find((x) => x.id === c.kind)?.icon}</span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium">{summary(c)}</span>
-                  <span className="text-xs text-black/45">{timeAgo(c.created_at)} · tap to open</span>
+                  <span className="text-xs text-black/45">{timeAgo(c.created_at)} · {t("tap to open")}</span>
                 </span>
               </button>
             ))}

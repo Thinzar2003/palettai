@@ -8,16 +8,18 @@ import { colorOf, type BrandKit, type SocialPost } from "@/lib/types";
  * One square social post rendered in the brand's style.
  * Four layouts (quote / promo / tip / announcement). Exported to PNG with html-to-image.
  */
-const PostCard = forwardRef<HTMLDivElement, { kit: BrandKit; post: SocialPost; size?: number }>(function PostCard(
-  { kit, post, size = 360 },
-  ref,
-) {
+export type PhotoStyle = "full" | "frame";
+
+const PostCard = forwardRef<
+  HTMLDivElement,
+  { kit: BrandKit; post: SocialPost; size?: number; photo?: string | null; photoStyle?: PhotoStyle; price?: string }
+>(function PostCard({ kit, post, size = 360, photo, photoStyle = "full", price }, ref) {
   const primary = colorOf(kit, "primary");
   const secondary = colorOf(kit, "secondary");
   const accent = colorOf(kit, "accent");
   const bg = colorOf(kit, "background");
   const text = colorOf(kit, "text");
-  const heading = `'${kit.fonts.heading}', sans-serif`;
+  const heading = `'${kit.fonts.heading}', '${kit.fonts.thai}', sans-serif`;
   const body = `'${kit.fonts.body}', '${kit.fonts.thai}', sans-serif`;
   const icon = selectedIconSvg(kit);
   const u = size / 360; // scale unit so text scales with the card
@@ -45,6 +47,51 @@ const PostCard = forwardRef<HTMLDivElement, { kit: BrandKit; post: SocialPost; s
     ) : null;
 
   const box: React.CSSProperties = { width: size, height: size, position: "relative", overflow: "hidden", borderRadius: 18 * u };
+
+  const priceTag = price ? (
+    <div style={{ position: "absolute", right: 18 * u, top: 18 * u, background: accent, color: kit.on_primary, fontFamily: heading,
+      fontWeight: 800, fontSize: 20 * u, padding: `${8 * u}px ${14 * u}px`, borderRadius: 14 * u, transform: "rotate(6deg)",
+      boxShadow: "0 8px 18px -8px rgba(0,0,0,.45)" }}>
+      {price}
+    </div>
+  ) : null;
+
+  // ── Owner's own photo ──
+  if (photo && photoStyle === "full") {
+    return (
+      <div ref={ref} style={{ ...box, color: "#fff" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        <div style={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${primary} 0%, ${primary}cc 28%, transparent 62%)` }} />
+        <div style={{ position: "absolute", left: 18 * u, top: 18 * u, background: "rgba(255,255,255,.92)", borderRadius: 999,
+          padding: `${5 * u}px ${12 * u}px ${5 * u}px ${6 * u}px` }}>{logo(false)}</div>
+        {priceTag}
+        <div style={{ position: "absolute", left: 24 * u, right: 24 * u, bottom: 22 * u, color: kit.on_primary }}>
+          <p style={{ fontFamily: heading, fontWeight: 800, fontSize: 32 * u, lineHeight: 1.04 }}>{post.headline}</p>
+          {post.subtext && <p style={{ fontFamily: body, fontSize: 13 * u, marginTop: 6 * u, opacity: 0.92 }}>{post.subtext}</p>}
+          {post.cta && <div style={{ marginTop: 12 * u }}>{cta(true)}</div>}
+        </div>
+      </div>
+    );
+  }
+  if (photo) {
+    return (
+      <div ref={ref} style={{ ...box, background: bg, color: text, padding: 16 * u, display: "flex", flexDirection: "column" }}>
+        <div style={{ position: "relative", flex: 1, borderRadius: 12 * u, overflow: "hidden", border: `${4 * u}px solid ${primary}` }}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={photo} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
+        </div>
+        {priceTag}
+        <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 10 * u, marginTop: 12 * u }}>
+          <div style={{ minWidth: 0 }}>
+            <p style={{ fontFamily: heading, fontWeight: 800, fontSize: 22 * u, lineHeight: 1.05, color: primary }}>{post.headline}</p>
+            {post.subtext && <p style={{ fontFamily: body, fontSize: 11 * u, marginTop: 4 * u, opacity: 0.8 }}>{post.subtext}</p>}
+          </div>
+          <div style={{ flexShrink: 0 }}>{post.cta ? cta(false) : logo(false)}</div>
+        </div>
+      </div>
+    );
+  }
 
   if (post.layout === "promo") {
     return (

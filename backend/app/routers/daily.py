@@ -1,4 +1,5 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import ValidationError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -6,7 +7,8 @@ from ..daily import context, context_text
 from ..db import get_db
 from ..deps import check_quota, current_user, record_usage
 from ..models import Creation, User
-from ..schemas import Brief, CreationOut, DailyPostIn, PromoIn, ReplyIn
+from ..schemas import (Brief, CreationEdit, CreationOut, DailyPostIn, PromoIn, PromoOut, ReplyIn, ReplyOut,
+                       SocialPost)
 from ..service import daily_post, promo, reply
 from .brands import _ai, _own_brand
 
@@ -67,3 +69,23 @@ def list_creations(brand_id: int, limit: int = Query(20, ge=1, le=50),
     rows = db.scalars(select(Creation).where(Creation.brand_id == brand.id)
                       .order_by(Creation.created_at.desc()).limit(limit)).all()
     return [_out(c) for c in rows]
+
+
+EDIT_MODELS = {"post": SocialPost, "promo": PromoOut, "reply": ReplyOut}
+
+
+@router.patch("/creations/{creation_id}", response_model=CreationOut)
+def edit_creation(creation_id: int, body: CreationEdit, user: User = Depends(current_user),
+                  db: Session = Depends(get_db)):
+    """Save the owner's hand edits (text, layout) to a post/promo/reply in history. No AI involved."""
+    c = db.get(Creation, creation_id)
+    if not c or c.user_id != user.id:
+        raise HTTPException(status_code=404, detail="Not found")
+    try:
+        cleaned = EDIT_MODELS[c.kind].model_validate({**c.output, **body.output}).model_dump()
+    except ValidationError as e:
+        raise HTTPException(status_code=422, detail=f"Invalid edit: {e.errors()[0].get('msg', 'bad value')}")
+    c.output = cleaned
+    db.commit()
+    db.refresh(c)
+    return _out(c)

@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
+import { useT } from "@/lib/i18n";
 import type { DailyContext, DayEvent } from "@/lib/types";
 
 // [greeting, Thai line, question]: Bangkok time decides which one shows.
@@ -91,15 +92,27 @@ export function SkyIcon({ part, size = 64 }: { part: DailyContext["part_of_day"]
 
 /* ── Greeting: words pop in, the name gets a hand-drawn underline ── */
 export function Greeting({ ctx, name }: { ctx: DailyContext; name: string }) {
-  const [hello, helloTh, question] = GREETING[ctx.part_of_day];
-  const words = `${hello},`.split(" ");
-  const dateLine = `${ctx.weekday} · ${new Date(ctx.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long" })}`;
+  const { t, lang } = useT();
+  const [helloEn, helloTh, question] = GREETING[ctx.part_of_day];
+  // In Thai mode the big greeting is Thai; the small line shows the other language.
+  const hello = lang === "th" ? helloTh : helloEn;
+  const subHello = lang === "th" ? helloEn : helloTh;
+  const words = lang === "th" ? [`${hello}`] : `${hello},`.split(" ");
 
   return (
     <div>
       <motion.p initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}
         className="text-sm text-black/50">
-        {dateLine} · <span style={{ fontFamily: "'Prompt', sans-serif" }}>{ctx.weekday_th}</span>
+        {lang === "th" ? (
+          <span style={{ fontFamily: "'Prompt', sans-serif" }}>
+            {ctx.weekday_th} · {new Date(ctx.date + "T00:00:00").toLocaleDateString("th-TH", { day: "numeric", month: "long", year: "numeric" })}
+          </span>
+        ) : (
+          <>
+            {ctx.weekday} · {new Date(ctx.date + "T00:00:00").toLocaleDateString("en-GB", { day: "numeric", month: "long" })} ·{" "}
+            <span style={{ fontFamily: "'Prompt', sans-serif" }}>{ctx.weekday_th}</span>
+          </>
+        )}
       </motion.p>
       <h1 className="flex flex-wrap items-center gap-x-3 font-display text-4xl font-extrabold tracking-tight sm:text-5xl">
         {words.map((w, i) => (
@@ -125,7 +138,7 @@ export function Greeting({ ctx, name }: { ctx: DailyContext; name: string }) {
       </h1>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.7 }}
         className="mt-2 text-black/55">
-        <span style={{ fontFamily: "'Prompt', sans-serif" }}>{helloTh}</span> · {question}
+        <span style={{ fontFamily: "'Prompt', sans-serif" }}>{subHello}</span> · {t(question)}
       </motion.p>
     </div>
   );
@@ -134,6 +147,7 @@ export function Greeting({ ctx, name }: { ctx: DailyContext; name: string }) {
 /* ── Event strip: payday banner + chips with countdown rings ── */
 export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventName: string) => void }) {
   const calm = useReducedMotion();
+  const { t, lang } = useT();
   const paydayToday = ctx.days_to_payday === 0;
   // The banner already says "payday today", so don't repeat it as a chip.
   const events = [...ctx.today, ...ctx.upcoming].filter((e) => !(paydayToday && e.kind === "payday" && e.days_until === 0));
@@ -173,8 +187,8 @@ export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventN
                 💰
               </motion.span>
               <span>
-                Payday today: people are spending!
-                <span className="block text-xs font-normal opacity-75">Tap for a payday post</span>
+                {t("Payday today: people are spending!")}
+                <span className="block text-xs font-normal opacity-75">{t("Tap for a payday post")}</span>
               </span>
             </span>
           </motion.button>
@@ -188,7 +202,7 @@ export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventN
               transition={{ delay: 0.15 + i * 0.07, type: "spring", stiffness: 260, damping: 20 }}
               whileHover="hover" whileTap={{ scale: 0.96 }}
               variants={{ hover: { y: -4 } }}
-              title="Make a post about this"
+              title={t("tap for a post")}
               className="group flex shrink-0 items-center gap-3 rounded-2xl border border-black/10 bg-white px-3.5 py-2 text-left text-sm shadow-sm transition-colors hover:border-studio-accent">
               {/* countdown ring */}
               <span className="relative flex h-9 w-9 shrink-0 items-center justify-center">
@@ -205,7 +219,7 @@ export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventN
               </span>
               <span>
                 <span className="flex items-center gap-1.5 font-medium">
-                  {e.name_en}
+                  <span style={lang === "th" ? { fontFamily: "'Prompt', sans-serif" } : undefined}>{lang === "th" ? e.name_th : e.name_en}</span>
                   {e.days_until === 0 && (
                     <span className="relative flex h-2 w-2">
                       <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-studio-accent opacity-60" />
@@ -214,7 +228,7 @@ export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventN
                   )}
                 </span>
                 <span className="block text-xs text-black/45">
-                  {e.days_until === 0 ? "Today" : e.days_until === 1 ? "Tomorrow" : `In ${e.days_until} days`} · tap for a post
+                  {e.days_until === 0 ? t("Today") : e.days_until === 1 ? t("Tomorrow") : t("In {n} days", { n: e.days_until })} · {t("tap for a post")}
                 </span>
               </span>
             </motion.button>
@@ -240,8 +254,9 @@ export function EventStrip({ ctx, onPick }: { ctx: DailyContext; onPick: (eventN
 }
 
 function ScrollArrow({ dir, onClick }: { dir: 1 | -1; onClick: () => void }) {
+  const { t } = useT();
   return (
-    <motion.button type="button" onClick={onClick} aria-label={dir === 1 ? "More events" : "Previous events"}
+    <motion.button type="button" onClick={onClick} aria-label={dir === 1 ? t("More events") : t("Previous events")}
       initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
       className={`absolute top-1/2 hidden h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full border border-black/10 bg-white text-lg shadow-md sm:flex ${
         dir === 1 ? "right-1" : "left-1"

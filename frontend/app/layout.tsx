@@ -1,12 +1,26 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import CursorGlow from "@/components/CursorGlow";
 import Footer from "@/components/Footer";
 import NavBar from "@/components/NavBar";
 import { AuthProvider } from "@/lib/auth";
+import { LangProvider } from "@/lib/i18n";
 import { ThemeProvider, themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#FBF8F3" },
+    { media: "(prefers-color-scheme: dark)", color: "#0B0B11" },
+  ],
+};
+
 export const metadata: Metadata = {
+  applicationName: "Palettai",
+  appleWebApp: { capable: true, title: "Palettai", statusBarStyle: "default" },
+  icons: {
+    icon: [{ url: "/icons/favicon-32.png", sizes: "32x32" }, { url: "/icons/icon-192.png", sizes: "192x192" }],
+    apple: "/icons/apple-touch-icon.png",
+  },
   title: "Palettai — AI brand designer",
   description: "Describe your business. Get a full brand kit in Thai and English.",
 };
@@ -26,6 +40,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="min-h-screen font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
+          <LangProvider>
           <AuthProvider>
             <CursorGlow />
             <div className="relative z-10">
@@ -36,6 +51,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <Footer />
             </div>
           </AuthProvider>
+          </LangProvider>
         </ThemeProvider>
       </body>
     </html>

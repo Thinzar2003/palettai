@@ -3,6 +3,7 @@
 import { toPng } from "html-to-image";
 import { useEffect, useState } from "react";
 import { downloadDataUrl } from "@/lib/download";
+import { useT } from "@/lib/i18n";
 
 /** Big, phone-friendly actions for a finished design: save, share, copy caption. */
 export default function ShareBar({
@@ -18,6 +19,7 @@ export default function ShareBar({
   pixelRatio?: number;
   onToast: (msg: string) => void;
 }) {
+  const { t } = useT();
   const [canShare, setCanShare] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => setCanShare(typeof navigator !== "undefined" && "share" in navigator), []);
@@ -31,9 +33,9 @@ export default function ShareBar({
     setBusy(true);
     try {
       downloadDataUrl(await render(), filename);
-      onToast("Image saved");
+      onToast(t("Image saved"));
     } catch {
-      onToast("Couldn't save the image. Try again.");
+      onToast(t("Couldn't save the image. Try again."));
     } finally {
       setBusy(false);
     }
@@ -49,10 +51,10 @@ export default function ShareBar({
       } else {
         downloadDataUrl(URL.createObjectURL(blob), filename);
         if (caption) await navigator.clipboard.writeText(caption).catch(() => undefined);
-        onToast("Image saved and caption copied: paste it in your app");
+        onToast(t("Image saved and caption copied: paste it in your app"));
       }
     } catch (e) {
-      if ((e as Error)?.name !== "AbortError") onToast("Sharing didn't work. Use Save image instead.");
+      if ((e as Error)?.name !== "AbortError") onToast(t("Sharing didn't work. Use Save image instead."));
     } finally {
       setBusy(false);
     }
@@ -60,21 +62,24 @@ export default function ShareBar({
 
   return (
     <div className="flex flex-wrap gap-2">
-      <BigButton onClick={save} disabled={busy} primary>⤓ Save image</BigButton>
-      {canShare && <BigButton onClick={share} disabled={busy}>↗ Share</BigButton>}
+      <BigButton onClick={save} disabled={busy} primary>{t("⤓ Save image")}</BigButton>
+      {canShare && <BigButton onClick={share} disabled={busy}>{t("↗ Share")}</BigButton>}
       {caption && (
-        <BigButton onClick={() => copy(caption, onToast)} disabled={busy}>⧉ Copy caption</BigButton>
+        <BigButton onClick={() => copy(caption, onToast, t("Copied!"), t("Your browser blocked copying. Select the text and copy it manually."))} disabled={busy}>
+          {t("⧉ Copy caption")}
+        </BigButton>
       )}
     </div>
   );
 }
 
-export async function copy(text: string, onToast: (m: string) => void, label = "Copied!") {
+export async function copy(text: string, onToast: (m: string) => void, label = "Copied!",
+  blocked = "Your browser blocked copying. Select the text and copy it manually.") {
   try {
     await navigator.clipboard.writeText(text);
     onToast(label);
   } catch {
-    onToast("Your browser blocked copying. Select the text and copy it manually.");
+    onToast(blocked);
   }
 }
 

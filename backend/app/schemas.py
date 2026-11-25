@@ -244,3 +244,7 @@ class CreationOut(BaseModel):
     input: dict
     output: dict
     created_at: str
+
+
+class CreationEdit(BaseModel):
+    output: dict

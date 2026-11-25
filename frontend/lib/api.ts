@@ -65,6 +65,8 @@ export const api = {
   dailyReply: (id: number, message: string, platform: ReplyPlatform, tweak: ReplyTweak | null = null) =>
     post<Creation>(`/brands/${id}/daily/reply`, { message, platform, tweak }),
   creations: (id: number) => request<Creation[]>(`/brands/${id}/creations`),
+  updateCreation: (id: number, output: object) =>
+    request<Creation>(`/creations/${id}`, { method: "PATCH", body: JSON.stringify({ output }) }),
 
   // public
   publicBrand: (slug: string) => request<PublicBrand>(`/public/${encodeURIComponent(slug)}`),

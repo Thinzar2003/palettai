@@ -5,11 +5,13 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import { useT } from "@/lib/i18n";
 import { QUOTES } from "@/lib/quotes";
 import TerminalQuote from "./TerminalQuote";
 
 export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const { user, login, register } = useAuth();
+  const { t } = useT();
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
@@ -51,8 +53,8 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         <TerminalQuote quotes={QUOTES} size="md" />
         <p className="mt-4 text-lg text-black/60">
           {isRegister
-            ? "Create a free account to save brands, track versions and share them with clients."
-            : "Welcome back. Your brands are waiting for you."}
+            ? t("Create a free account to save brands, track versions and share them with clients.")
+            : t("Welcome back. Your brands are waiting for you.")}
         </p>
         <div className="mt-10 flex gap-3">
           {["#FF5A36", "#FFC93C", "#18B6C9", "#4E7A3A", "#22223B"].map((c, i) => (
@@ -74,19 +76,19 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
         animate={{ opacity: 1, y: 0 }}
         className="rounded-3xl border border-black/10 bg-white p-8 shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)]"
       >
-        <h2 className="mb-6 font-display text-2xl font-bold">{isRegister ? "Create your account" : "Log in"}</h2>
+        <h2 className="mb-6 font-display text-2xl font-bold">{isRegister ? t("Create your account") : t("Log in")}</h2>
         {isRegister && (
           <label className="mb-4 block">
-            <span className="mb-1 block text-sm text-black/70">Your name</span>
+            <span className="mb-1 block text-sm text-black/70">{t("Your name")}</span>
             <input value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} className={input} />
           </label>
         )}
         <label className="mb-4 block">
-          <span className="mb-1 block text-sm text-black/70">Email</span>
+          <span className="mb-1 block text-sm text-black/70">{t("Email")}</span>
           <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" className={input} />
         </label>
         <label className="mb-6 block">
-          <span className="mb-1 block text-sm text-black/70">Password</span>
+          <span className="mb-1 block text-sm text-black/70">{t("Password")}</span>
           <input
             type="password"
             value={password}
@@ -96,7 +98,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
             autoComplete={isRegister ? "new-password" : "current-password"}
             className={input}
           />
-          {isRegister && <span className="mt-1 block text-xs text-black/40">At least 8 characters</span>}
+          {isRegister && <span className="mt-1 block text-xs text-black/40">{t("At least 8 characters")}</span>}
         </label>
 
         {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
@@ -106,16 +108,16 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
           disabled={busy}
           className="w-full rounded-2xl bg-studio-accent py-3.5 font-display text-lg font-semibold text-on-accent shadow-lg shadow-studio-accent/30 transition hover:brightness-105 disabled:opacity-50"
         >
-          {busy ? "Please wait…" : isRegister ? "Create account" : "Log in"}
+          {busy ? t("Please wait…") : isRegister ? t("Create account") : t("Log in")}
         </button>
 
         <p className="mt-6 text-center text-sm text-black/55">
-          {isRegister ? "Already have an account? " : "New here? "}
+          {isRegister ? t("Already have an account? ") : t("New here? ")}
           <Link
             href={`${isRegister ? "/login" : "/register"}${next ? `?next=${encodeURIComponent(next)}` : ""}`}
             className="font-medium text-studio-accent hover:underline"
           >
-            {isRegister ? "Log in" : "Create an account"}
+            {isRegister ? t("Log in") : t("Create an account")}
           </Link>
         </p>
       </motion.form>
