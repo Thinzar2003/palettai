@@ -200,3 +200,47 @@ class ImportFound(BaseModel):
 class ImportOut(BaseModel):
     brief: Brief
     found: ImportFound
+
+
+# ── Daily tools ─────────────────────────────────────────────────────────────
+class DailyPostIn(BaseModel):
+    idea: str | None = Field(default=None, max_length=300)
+    event: str | None = Field(default=None, max_length=80)
+
+
+class PromoIn(BaseModel):
+    offer: str = Field(min_length=3, max_length=200)
+    period: str | None = Field(default=None, max_length=100)
+
+
+class ReplyIn(BaseModel):
+    message: str = Field(min_length=2, max_length=2000)
+    platform: Literal["google", "facebook", "line", "instagram", "other"] = "other"
+    tweak: Literal["friendlier", "more formal", "shorter"] | None = None
+
+
+class PromoOut(BaseModel):
+    badge: str = ""
+    headline: str = ""
+    subtext: str = ""
+    cta: str = ""
+    facebook_caption: str = ""
+    line_message: str = ""
+    hashtags: list[str] = Field(default_factory=list)
+
+
+class ReplyOut(BaseModel):
+    sentiment: Literal["positive", "neutral", "negative", "question"] = "neutral"
+    language: Literal["th", "en"] = "th"
+    reply: str
+    reply_other: str = ""
+    tip: str = ""
+
+
+class CreationOut(BaseModel):
+    id: int
+    brand_id: int
+    kind: Literal["post", "promo", "reply"]
+    input: dict
+    output: dict
+    created_at: str

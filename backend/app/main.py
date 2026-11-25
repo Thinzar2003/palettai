@@ -9,7 +9,7 @@ from . import config  # noqa: F401  (loads .env first)
 from .db import init_db
 from .imagegen import image_status
 from .llm import model_for, provider_chain
-from .routers import auth, brands
+from .routers import auth, brands, daily
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
@@ -34,6 +34,7 @@ app.add_middleware(
 
 app.include_router(auth.router)
 app.include_router(brands.router)
+app.include_router(daily.router)
 
 
 @app.get("/health")

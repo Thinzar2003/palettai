@@ -1,4 +1,4 @@
-import type { BrandDetail, BrandSummary, Brief, FontLists, ImportOut, KitEdit, LockPart, LogoStyle, PublicBrand, User } from "./types";
+import type { BrandDetail, BrandSummary, Brief, Creation, DailyContext, FontLists, ImportOut, ReplyPlatform, ReplyTweak, KitEdit, LockPart, LogoStyle, PublicBrand, User } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, message: string) {
@@ -55,6 +55,16 @@ export const api = {
   selectLogo: (id: number, index: number | null) => post<BrandDetail>(`/brands/${id}/logos/select`, { index }),
   makeSocial: (id: number) => post<BrandDetail>(`/brands/${id}/social`),
   fonts: () => request<FontLists>("/fonts"),
+
+  // daily tools
+  today: () => request<DailyContext>("/today"),
+  dailyPost: (id: number, idea: string | null, event: string | null) =>
+    post<Creation>(`/brands/${id}/daily/post`, { idea, event }),
+  dailyPromo: (id: number, offer: string, period: string | null) =>
+    post<Creation>(`/brands/${id}/daily/promo`, { offer, period }),
+  dailyReply: (id: number, message: string, platform: ReplyPlatform, tweak: ReplyTweak | null = null) =>
+    post<Creation>(`/brands/${id}/daily/reply`, { message, platform, tweak }),
+  creations: (id: number) => request<Creation[]>(`/brands/${id}/creations`),
 
   // public
   publicBrand: (slug: string) => request<PublicBrand>(`/public/${encodeURIComponent(slug)}`),

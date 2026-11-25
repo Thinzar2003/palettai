@@ -13,7 +13,7 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
-  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+  const target = next && next.startsWith("/") && !next.startsWith("//") ? next : "/today";
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");

@@ -210,3 +210,84 @@ def build_import_prompt(info: dict | None, pasted: str | None) -> str:
     if pasted:
         parts.append(f"Description from the owner: {pasted}")
     return "\n".join(parts)
+
+
+# ── Daily tools ──────────────────────────────────────────────────────────────
+def brand_context(brief, kit: dict) -> str:
+    return (
+        f"Brand: {kit.get('brand_name')} — {kit.get('tagline')}\n"
+        f"What they do: {brief.description}\n"
+        f"Customers: {brief.audience or 'general'}\n"
+        f"Tone of voice: {kit.get('tone')}\n"
+        f"Keywords: {', '.join(kit.get('keywords', []))}\n"
+        f"Language: {brief.language}  (en = English only, th = Thai only, both = Thai and English)"
+    )
+
+
+DAILY_POST_SYSTEM = """You are the social media manager of a small business in Thailand. Write ONE post for TODAY.
+
+Reply with ONE JSON object and nothing else:
+{"theme": string,                                  // e.g. "Rainy-day special", "Behind the scenes"
+ "layout": "quote"|"promo"|"tip"|"announcement",
+ "headline": string,                               // max 7 words, shown big on the image
+ "subtext": string,                                // max 14 words
+ "cta": string,                                    // max 4 words, e.g. "Order on LINE"
+ "caption_en": string,                             // 2-3 short sentences + 1-2 emoji ("" if language is "th")
+ "caption_th": string,                             // natural Thai caption ("" if language is "en")
+ "hashtags": [string, ...]}                        // 4-6, no spaces, mix Thai and English when language allows
+
+Make it timely: use today's weekday, any event today or coming soon, and payday when it fits naturally.
+If the owner gives an idea, the post must be about that idea. Never invent prices, discounts or opening hours
+the owner didn't give. Match the brand's tone of voice."""
+
+
+PROMO_SYSTEM = """You write promotions for a small business in Thailand, for several channels at once.
+
+Reply with ONE JSON object and nothing else:
+{"badge": string,              // the offer in 1-3 words for a sticker, e.g. "-20%", "1 แถม 1", "FREE"
+ "headline": string,           // max 6 words
+ "subtext": string,            // max 12 words: the conditions / period
+ "cta": string,                // max 4 words
+ "facebook_caption": string,   // 2-4 sentences with emoji, in the brand's language(s); Thai first when language is "both"
+ "line_message": string,       // a short LINE OA broadcast (max 300 characters), friendly, Thai if language is th/both
+ "hashtags": [string, ...]}    // 4-6, no spaces
+
+Use ONLY the offer details the owner gave (amounts, dates, conditions). Don't add terms they didn't mention."""
+
+
+REPLY_SYSTEM = """You help a small business owner in Thailand reply to customer reviews and chat messages.
+
+Reply with ONE JSON object and nothing else:
+{"sentiment": "positive"|"neutral"|"negative"|"question",
+ "language": "th"|"en",                // language the customer wrote in
+ "reply": string,                      // the reply, in the customer's language, ready to send
+ "reply_other": string,                // the same reply in the other language (Thai/English), for reference
+ "tip": string}                        // one short tip for the owner (English)
+
+Rules: be warm and genuine, in the brand's tone of voice; thank them by name if given; for complaints apologise
+sincerely, don't argue, and invite them to message privately (DM/LINE) to fix it. Never invent facts, prices,
+opening hours or refunds: use a placeholder like [opening hours] or [เวลาเปิด] instead. Keep it short
+(2-4 sentences). Use Thai politeness particles (ค่ะ/ครับ) naturally if replying in Thai; default to ค่ะ."""
+
+
+def build_daily_post_prompt(brief, kit: dict, ctx_text: str, idea: str | None, event: str | None) -> str:
+    lines = [brand_context(brief, kit), "", ctx_text]
+    if event:
+        lines.append(f"The owner wants today's post to be about: {event}")
+    if idea:
+        lines.append(f"Owner's idea for today: {idea}")
+    if not idea and not event:
+        lines.append("No idea given: pick something fitting for today (avoid inventing promotions).")
+    return "\n".join(lines)
+
+
+def build_promo_prompt(brief, kit: dict, ctx_text: str, offer: str, period: str | None) -> str:
+    return "\n".join([brand_context(brief, kit), "", ctx_text, f"Offer: {offer}",
+                      f"When: {period or 'not specified (do not invent dates)'}"])
+
+
+def build_reply_prompt(brief, kit: dict, message: str, platform: str, tweak: str | None) -> str:
+    lines = [brand_context(brief, kit), "", f"Platform: {platform}", f"Customer message:\n{message}"]
+    if tweak:
+        lines.append(f"Make the reply {tweak}.")
+    return "\n".join(lines)

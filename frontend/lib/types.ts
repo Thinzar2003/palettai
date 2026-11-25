@@ -149,3 +149,57 @@ export function timeAgo(iso: string): string {
   if (s < 86400) return `${Math.floor(s / 3600)} h ago`;
   return `${Math.floor(s / 86400)} d ago`;
 }
+
+// ── Daily tools ───────────────────────────────────────────────────────────────
+export interface DayEvent {
+  name_en: string;
+  name_th: string;
+  kind: "holiday" | "observance" | "sale" | "payday";
+  date: string;
+  days_until: number;
+}
+
+export interface DailyContext {
+  date: string;
+  weekday: string;
+  weekday_th: string;
+  pretty: string;
+  part_of_day: "morning" | "afternoon" | "evening";
+  is_weekend: boolean;
+  days_to_payday: number | null;
+  today: DayEvent[];
+  upcoming: DayEvent[];
+}
+
+export interface PromoOutput {
+  badge: string;
+  headline: string;
+  subtext: string;
+  cta: string;
+  facebook_caption: string;
+  line_message: string;
+  hashtags: string[];
+}
+
+export type ReplyPlatform = "google" | "facebook" | "line" | "instagram" | "other";
+export type ReplyTweak = "friendlier" | "more formal" | "shorter";
+
+export interface ReplyOutput {
+  sentiment: "positive" | "neutral" | "negative" | "question";
+  language: "th" | "en";
+  reply: string;
+  reply_other: string;
+  tip: string;
+}
+
+interface CreationBase {
+  id: number;
+  brand_id: number;
+  created_at: string;
+}
+export type Creation = CreationBase &
+  (
+    | { kind: "post"; input: { idea?: string | null; event?: string | null }; output: SocialPost }
+    | { kind: "promo"; input: { offer: string; period?: string | null }; output: PromoOutput }
+    | { kind: "reply"; input: { message: string; platform: ReplyPlatform; tweak?: ReplyTweak | null }; output: ReplyOutput }
+  );

@@ -73,3 +73,16 @@ class UsageEvent(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     kind: Mapped[str] = mapped_column(String(30))   # brand | regenerate | refine | logos | social
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)
+
+
+class Creation(Base):
+    """Something made with a daily tool (post, promo, reply): kept so it can be reused."""
+    __tablename__ = "creations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    brand_id: Mapped[int] = mapped_column(ForeignKey("brands.id", ondelete="CASCADE"), index=True)
+    kind: Mapped[str] = mapped_column(String(20))
+    input: Mapped[dict] = mapped_column(JSON)
+    output: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, index=True)

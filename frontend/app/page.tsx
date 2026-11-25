@@ -59,8 +59,8 @@ export default function Landing() {
               {user ? "Create a brand ✨" : "Start free ✨"}
             </Link>
             {user ? (
-              <Link href="/dashboard" className="rounded-full border border-black/15 px-7 py-4 font-display text-lg">
-                My brands
+              <Link href="/today" className="rounded-full border border-black/15 px-7 py-4 font-display text-lg">
+                Today ☀️
               </Link>
             ) : (
               <Link href="/login" className="rounded-full border border-black/15 px-7 py-4 font-display text-lg">

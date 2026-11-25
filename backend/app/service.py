@@ -15,9 +15,11 @@ from .imagegen import ImageGenError, generate_image, image_configured
 from .logo_styles import LOGO_STYLES, build_flux_prompt, normalize_styles
 from .vectorize import image_to_logo_svg
 from .webimport import WebImportError, read_site
-from .prompts import (IMPORT_SYSTEM, build_import_prompt, LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
+from .prompts import (DAILY_POST_SYSTEM, PROMO_SYSTEM, REPLY_SYSTEM, build_daily_post_prompt, build_promo_prompt,
+                      build_reply_prompt,
+                      IMPORT_SYSTEM, build_import_prompt, LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
                       build_social_prompt, build_user_prompt)
-from .schemas import ROLES, Brief, BrandKit, ImportFound, ImportOut, KitEdit, LogoIcon, SocialPost
+from .schemas import ROLES, Brief, BrandKit, ImportFound, ImportOut, PromoOut, ReplyOut, KitEdit, LogoIcon, SocialPost
 from .svg import SvgError, sanitize_svg
 
 log = logging.getLogger("brand")
@@ -325,3 +327,41 @@ async def import_brief(url: str | None, pasted: str | None) -> ImportOut:
         reference=("; ".join(ref)[:1000] or None),
     )
     return ImportOut(brief=brief, found=found)
+
+
+# ── Daily tools ──────────────────────────────────────────────────────────────
+def _clean_tags(tags) -> list[str]:
+    return [str(t).lstrip("#").replace(" ", "")[:40] for t in (tags or []) if str(t).strip()][:8]
+
+
+async def daily_post(brief: Brief, kit: dict, ctx_text: str, idea: str | None, event: str | None) -> dict:
+    def parse(raw: dict, *_args) -> dict:
+        posts = _parse_posts(brief.language)({"posts": [raw, raw, raw]})  # reuse validation (needs 3)
+        return posts[0]
+    post, _, _ = await generate_with_chain(DAILY_POST_SYSTEM, build_daily_post_prompt(brief, kit, ctx_text, idea, event), parse)
+    return post
+
+
+async def promo(brief: Brief, kit: dict, ctx_text: str, offer: str, period: str | None) -> dict:
+    def parse(raw: dict, *_args) -> dict:
+        out = PromoOut.model_validate({**raw, "hashtags": _clean_tags(raw.get("hashtags"))})
+        if not out.headline or not (out.facebook_caption or out.line_message):
+            raise ValueError("Incomplete promo")
+        return out.model_dump()
+    result, _, _ = await generate_with_chain(PROMO_SYSTEM, build_promo_prompt(brief, kit, ctx_text, offer, period), parse)
+    return result
+
+
+async def reply(brief: Brief, kit: dict, message: str, platform: str, tweak: str | None) -> dict:
+    def parse(raw: dict, *_args) -> dict:
+        data = {**raw}
+        if data.get("sentiment") not in ("positive", "neutral", "negative", "question"):
+            data["sentiment"] = "neutral"
+        if data.get("language") not in ("th", "en"):
+            data["language"] = "th"
+        out = ReplyOut.model_validate(data)
+        if not out.reply.strip():
+            raise ValueError("Empty reply")
+        return out.model_dump()
+    result, _, _ = await generate_with_chain(REPLY_SYSTEM, build_reply_prompt(brief, kit, message, platform, tweak), parse)
+    return result

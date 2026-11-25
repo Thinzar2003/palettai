@@ -25,7 +25,7 @@ export default function NavBar() {
   return (
     <header className="sticky top-0 z-40 border-b border-black/5 bg-studio-paper/80 backdrop-blur">
       <nav className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href={user ? "/dashboard" : "/"} aria-label="Palettai home">
+        <Link href={user ? "/today" : "/"} aria-label="Palettai home">
           <PopLogo />
         </Link>
 
@@ -34,6 +34,7 @@ export default function NavBar() {
             <ThemeToggle />
             {user ? (
               <>
+                {link("/today", "Today")}
                 {link("/dashboard", "My brands")}
                 <span
                   className="hidden rounded-full bg-black/5 px-3 py-1 text-xs text-black/50 sm:inline"
