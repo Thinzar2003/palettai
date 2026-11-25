@@ -21,8 +21,10 @@ KEY_CANDIDATES = [(0, 255, 0), (255, 0, 255), (0, 255, 255), (255, 255, 0), (0, 
 
 # vtracer settings: detailed first, then simpler if the result is too heavy.
 TRACE_PRESETS = [
-    dict(filter_speckle=6, color_precision=6, layer_difference=20, path_precision=2),
-    dict(filter_speckle=14, color_precision=5, layer_difference=36, path_precision=1),
+    dict(filter_speckle=10, color_precision=6, layer_difference=24, path_precision=2,
+         corner_threshold=70, length_threshold=6.0, splice_threshold=50),
+    dict(filter_speckle=18, color_precision=5, layer_difference=40, path_precision=1,
+         corner_threshold=80, length_threshold=8.0, splice_threshold=55),
 ]
 
 
@@ -108,7 +110,7 @@ def trace(img: Image.Image, preset: dict) -> str:
     img.save(buf, format="PNG")
     return vtracer.convert_raw_image_to_svg(
         buf.getvalue(), img_format="png", colormode="color", hierarchical="cutout", mode="spline",
-        corner_threshold=60, length_threshold=4.0, max_iterations=10, splice_threshold=45, **preset,
+        max_iterations=10, **preset,
     )
 
 

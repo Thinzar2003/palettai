@@ -11,7 +11,7 @@ from .colors import fix_palette, normalize_hex
 from .fonts import validate_fonts
 from .llm import LLMError, NotConfigured, call_provider, provider_chain
 from .mock import mock_brand
-from .imagegen import generate_image, image_configured
+from .imagegen import ImageGenError, generate_image, image_configured
 from .logo_styles import LOGO_STYLES, build_flux_prompt, normalize_styles
 from .vectorize import image_to_logo_svg
 from .prompts import (LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
@@ -213,11 +213,28 @@ async def _plan_concepts(brief: Brief, kit: dict, styles: list[str]) -> list[dic
     return concepts
 
 
-async def _draw_and_trace(concept: dict, kit: dict, match_colors: bool) -> dict:
+async def _draw_and_trace(concept: dict, kit: dict, match_colors: bool, industry: str | None = None) -> dict:
     palette = {c["role"]: c["hex"] for c in kit.get("palette", [])}
     letter = (kit.get("logo", {}).get("monogram") or kit.get("brand_name", "A"))[:1]
-    prompt = build_flux_prompt(concept["style"], concept["subject"], letter, palette)
-    image = await generate_image(prompt)
+    # Image safety filters sometimes block harmless prompts: retry with plainer subjects.
+    subjects = list(dict.fromkeys(filter(None, [
+        concept["subject"],
+        kit.get("logo", {}).get("symbol"),
+        f"a simple symbol for a {industry}" if industry else None,
+        "a simple abstract symbol",
+    ])))
+    image, last = None, None
+    for subject in subjects:
+        try:
+            image = await generate_image(build_flux_prompt(concept["style"], subject, letter, palette))
+            break
+        except ImageGenError as e:
+            last = e
+            if not e.blocked:
+                raise
+            log.info("Safety filter blocked a %s prompt; retrying with a plainer subject", concept["style"])
+    if image is None:
+        raise last or ImageGenError("no image")
     snap = list(palette.values()) if match_colors else None
     svg = await asyncio.to_thread(image_to_logo_svg, image, snap)
     return LogoIcon(name=concept["name"], concept=concept["concept"] or concept["subject"],
@@ -230,7 +247,7 @@ async def generate_icons(brief: Brief, kit: dict, styles: list[str] | None = Non
     styles = normalize_styles(styles, kit.get("personality"))
     if image_configured():
         concepts = await _plan_concepts(brief, kit, styles)
-        results = await asyncio.gather(*(_draw_and_trace(c, kit, match_colors) for c in concepts),
+        results = await asyncio.gather(*(_draw_and_trace(c, kit, match_colors, brief.industry) for c in concepts),
                                        return_exceptions=True)
         icons = [r for r in results if isinstance(r, dict)]
         for r in results:

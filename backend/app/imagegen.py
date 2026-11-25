@@ -11,7 +11,9 @@ DEFAULT_MODEL = "@cf/black-forest-labs/flux-1-schnell"
 
 
 class ImageGenError(RuntimeError):
-    pass
+    def __init__(self, message: str, blocked: bool = False):
+        super().__init__(message)
+        self.blocked = blocked  # the provider's safety filter refused this prompt
 
 
 def _clean(value: str | None) -> str:
@@ -87,7 +89,10 @@ async def generate_image(prompt: str, seed: int | None = None, steps: int = 6) -
     if resp.status_code in (401, 403):
         raise ImageGenError("Cloudflare token rejected — check CLOUDFLARE_API_TOKEN / ACCOUNT_ID")
     if resp.status_code != 200:
-        raise ImageGenError(f"Cloudflare {resp.status_code}: {resp.text[:200]}")
+        text = resp.text or ""
+        if "NSFW" in text or '"code":8007' in text.replace(" ", ""):
+            raise ImageGenError("prompt blocked by the safety filter", blocked=True)
+        raise ImageGenError(f"Cloudflare {resp.status_code}: {text[:200]}")
 
     headers = getattr(resp, "headers", None) or {}
     if str(headers.get("content-type", "")).startswith("image/"):

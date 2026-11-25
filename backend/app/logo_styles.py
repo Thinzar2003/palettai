@@ -8,7 +8,7 @@ from .colors import hex_to_rgb
 LOGO_STYLES: dict[str, dict[str, str]] = {
     "minimal": {
         "label": "Minimal",
-        "flux": "minimalist flat vector logo icon of {subject}, a few bold simple shapes, generous negative space",
+        "flux": "minimalist logo icon of {subject}, made of 2 to 4 bold solid shapes, thick strokes, generous negative space",
         "svg": "minimal: 3-6 bold flat shapes, lots of negative space",
     },
     "geometric": {
@@ -33,7 +33,7 @@ LOGO_STYLES: dict[str, dict[str, str]] = {
     },
     "line": {
         "label": "Line art",
-        "flux": "single-weight line art logo icon of {subject}, continuous outline drawing, rounded stroke ends, elegant",
+        "flux": "line art logo icon of {subject}, one continuous thick outline of even weight, rounded stroke ends, elegant",
         "svg": "line art: unfilled strokes of one consistent width, rounded caps",
     },
     "thai": {
@@ -43,8 +43,9 @@ LOGO_STYLES: dict[str, dict[str, str]] = {
     },
 }
 
-_COMMON = ("flat vector illustration, centered, isolated on a plain pure white background, high contrast, "
-           "solid flat colours, no gradients, no watermark, no mockup, no shadow, no frame")
+_COMMON = ("professional logo design, bold thick shapes, chunky lines, simple and iconic, readable at small sizes, "
+           "flat vector, centered, isolated on a plain pure white background, high contrast, solid flat colours, "
+           "no thin lines, no fine detail, no gradients, no watermark, no mockup, no shadow, no frame")
 _NO_TEXT = "no text, no words, no letters"
 
 
