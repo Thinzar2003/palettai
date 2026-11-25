@@ -17,6 +17,7 @@ import VersionHistory from "./VersionHistory";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { BrandDetail, LockPart } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 type Tab = "kit" | "logo" | "social";
 const TABS: { id: Tab; label: string }[] = [
@@ -26,6 +27,7 @@ const TABS: { id: Tab; label: string }[] = [
 ];
 
 export default function BrandWorkspace({ id }: { id: number }) {
+  const { t } = useT();
   const router = useRouter();
   const params = useSearchParams();
   const { refresh: refreshUser } = useAuth();
@@ -58,7 +60,7 @@ export default function BrandWorkspace({ id }: { id: number }) {
     api
       .getBrand(id)
       .then((b) => apply(b, params.get("new") === "1"))
-      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? "Brand not found." : e.message));
+      .catch((e) => setError(e instanceof ApiError && e.status === 404 ? t("Brand not found.") : e.message));
   }, [id, apply, params]);
 
   const run = async (kind: "generating" | "saving", fn: () => Promise<BrandDetail | void>, animate = false) => {
@@ -69,7 +71,7 @@ export default function BrandWorkspace({ id }: { id: number }) {
       if (result) apply(result, animate);
       return result;
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("Something went wrong"));
     } finally {
       setBusy(null);
     }
@@ -80,12 +82,12 @@ export default function BrandWorkspace({ id }: { id: number }) {
       <div className="mx-auto max-w-md py-24 text-center">
         <p className="mb-4 text-lg">{error}</p>
         <Link href="/dashboard" className="text-studio-accent underline">
-          Back to my brands
+          {t("Back to my brands")}
         </Link>
       </div>
     );
   }
-  if (!brand) return <Spinner label="Opening your brand…" />;
+  if (!brand) return <Spinner label={t("Opening your brand…")} />;
 
   const version = brand.versions.find((v) => v.version === viewing) ?? brand.versions[brand.versions.length - 1];
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/b/${brand.slug}` : "";
@@ -109,13 +111,13 @@ export default function BrandWorkspace({ id }: { id: number }) {
 
   const toggleShare = async () => {
     const res = await run("saving", () => api.updateBrand(brand.id, { is_public: !brand.is_public }));
-    if (res) show(res.is_public ? "Brand is public — anyone with the link can view it" : "Brand is private again");
+    if (res) show(res.is_public ? t("Brand is public — anyone with the link can view it") : t("Brand is private again"));
   };
 
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(shareUrl);
-      show("Link copied!");
+      show(t("Link copied!"));
     } catch {
       show(shareUrl);
     }
@@ -129,13 +131,13 @@ export default function BrandWorkspace({ id }: { id: number }) {
   };
 
   const remove = async () => {
-    if (!window.confirm(`Delete "${brand.name}" and all its versions? This cannot be undone.`)) return;
+    if (!window.confirm(t("Delete “{name}” and all its versions? This cannot be undone.", { name: brand.name }))) return;
     setBusy("saving");
     try {
       await api.deleteBrand(brand.id);
       router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Delete failed");
+      setError(e instanceof Error ? e.message : t("Delete failed"));
       setBusy(null);
     }
   };
@@ -156,7 +158,7 @@ export default function BrandWorkspace({ id }: { id: number }) {
       {/* Title bar */}
       <div className="mb-6 flex flex-wrap items-center gap-3">
         <Link href="/dashboard" className="text-sm text-black/50 hover:text-black">
-          ← My brands
+          ← {t("My brands")}
         </Link>
         <span className="text-black/20">/</span>
         {editingName ? (
@@ -176,13 +178,13 @@ export default function BrandWorkspace({ id }: { id: number }) {
         )}
         <div className="ml-auto flex flex-wrap gap-2">
           <ActionButton onClick={toggleShare} disabled={!!busy}>
-            {brand.is_public ? "🌐 Public" : "🔒 Private"}
+            {brand.is_public ? t("🌐 Public") : t("🔒 Private")}
           </ActionButton>
-          {brand.is_public && <ActionButton onClick={copyLink}>🔗 Copy link</ActionButton>}
-          <ActionButton onClick={() => window.open(`/brands/${brand.id}/guide`, "_blank")}>📄 Guide PDF</ActionButton>
+          {brand.is_public && <ActionButton onClick={copyLink}>{t("🔗 Copy link")}</ActionButton>}
+          <ActionButton onClick={() => window.open(`/brands/${brand.id}/guide`, "_blank")}>{t("📄 Guide PDF")}</ActionButton>
           <ActionButton onClick={exportJson}>⤓ JSON</ActionButton>
           <ActionButton onClick={remove} variant="danger" disabled={!!busy}>
-            Delete
+            {t("Delete")}
           </ActionButton>
         </div>
       </div>
@@ -193,30 +195,30 @@ export default function BrandWorkspace({ id }: { id: number }) {
         <div className="min-w-0 space-y-6">
           {/* Tabs */}
           <div className="relative flex gap-1 rounded-full border border-black/10 bg-white p-1">
-            {TABS.map((t) => (
+            {TABS.map((tb) => (
               <button
-                key={t.id}
+                key={tb.id}
                 type="button"
-                onClick={() => setTab(t.id)}
+                onClick={() => setTab(tb.id)}
                 className={`relative z-10 flex-1 rounded-full px-4 py-2 text-sm font-medium transition ${
-                  tab === t.id ? "text-white" : "text-black/60 hover:text-black"
+                  tab === tb.id ? "text-white" : "text-black/60 hover:text-black"
                 }`}
               >
-                {tab === t.id && (
+                {tab === tb.id && (
                   <motion.span
                     layoutId="tab-pill"
                     className="absolute inset-0 -z-10 rounded-full bg-studio-ink"
                     transition={{ type: "spring", stiffness: 380, damping: 30 }}
                   />
                 )}
-                {t.label}
+                {t(tb.label)}
               </button>
             ))}
           </div>
 
           {viewingOld && (
             <p className="rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              You're previewing v{viewing} (read-only). Restore it from the history panel to edit it.
+              {t("You're previewing v{v} (read-only). Restore it from the history panel to edit it.", { v: viewing ?? "" })}
             </p>
           )}
 
@@ -251,7 +253,7 @@ export default function BrandWorkspace({ id }: { id: number }) {
                         >
                           <span className="block text-2xl">✎</span>
                           <span className="font-display font-bold">{editing ? "Close editor" : "Edit by hand"}</span>
-                          <span className="block text-xs text-black/50">Colours · fonts · words</span>
+                          <span className="block text-xs text-black/50">{t("Colours · fonts · words")}</span>
                         </button>
                       </div>
                       <AnimatePresence>
@@ -263,7 +265,7 @@ export default function BrandWorkspace({ id }: { id: number }) {
                             onSaved={(b) => {
                               apply(b, false);
                               setEditing(false);
-                              show("Saved as a new version");
+                              show(t("Saved as a new version"));
                             }}
                             onCancel={() => setEditing(false)}
                             onError={setError}
@@ -315,9 +317,9 @@ export default function BrandWorkspace({ id }: { id: number }) {
             busy={!!busy}
           />
           <div className="rounded-3xl border border-black/10 bg-white p-5 text-sm">
-            <p className="mb-2 font-display text-lg font-bold">Brief</p>
+            <p className="mb-2 font-display text-lg font-bold">{t("Brief")}</p>
             <p className="text-black/70">{brand.brief.description}</p>
-            {brand.brief.vibes.length > 0 && <p className="mt-2 text-black/50">Vibe: {brand.brief.vibes.join(", ")}</p>}
+            {brand.brief.vibes.length > 0 && <p className="mt-2 text-black/50">{t("Vibe:")} {brand.brief.vibes.map((v) => t(v)).join(", ")}</p>}
           </div>
         </aside>
       </div>

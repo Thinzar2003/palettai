@@ -8,6 +8,7 @@ import TypeReveal from "./TypeReveal";
 import { selectedIconSvg } from "./BrandIcon";
 import { colorOf, type BrandKit } from "@/lib/types";
 import { useGoogleFonts } from "@/lib/useGoogleFonts";
+import { useT } from "@/lib/i18n";
 
 // Timeline (seconds) for the reveal sequence. `pace` scales it: 1 = full show, 0 = instant.
 const TIMELINE = { logo: 0.2, palette: 1.6, fonts: 3.2, slogans: 3.9, mockups: 4.8, details: 5.4 };
@@ -21,6 +22,7 @@ export default function BrandReveal({
   actions?: React.ReactNode;
   pace?: number;
 }) {
+  const { t } = useT();
   useGoogleFonts([kit.fonts.heading, kit.fonts.body, kit.fonts.thai]);
   const T = Object.fromEntries(Object.entries(TIMELINE).map(([k, v]) => [k, v * pace])) as typeof TIMELINE;
   const primary = colorOf(kit, "primary");
@@ -52,20 +54,20 @@ export default function BrandReveal({
         )}
       </section>
 
-      <Section title="Colour palette" hint="Click a colour to copy it" delay={Math.max(0, T.palette - 0.2)}>
+      <Section title={t("Colour palette")} hint={t("Click a colour to copy it")} delay={Math.max(0, T.palette - 0.2)}>
         <PalettePour palette={kit.palette} delay={T.palette} />
       </Section>
 
-      <Section title="Typography" delay={T.fonts}>
+      <Section title={t("Typography")} delay={T.fonts}>
         <div className="grid gap-4 md:grid-cols-3">
-          <FontCard label="Heading" font={kit.fonts.heading} sample="Aa Bb Cc" big delay={T.fonts} />
-          <FontCard label="Body" font={kit.fonts.body} sample="The quick brown fox jumps over the lazy dog." delay={T.fonts + 0.1} />
-          <FontCard label="Thai" font={kit.fonts.thai} sample="สวัสดี ยินดีต้อนรับ" big delay={T.fonts + 0.2} />
+          <FontCard label={t("Heading")} font={kit.fonts.heading} sample="Aa Bb Cc" big delay={T.fonts} />
+          <FontCard label={t("Body")} font={kit.fonts.body} sample="The quick brown fox jumps over the lazy dog." delay={T.fonts + 0.1} />
+          <FontCard label={t("Thai")} font={kit.fonts.thai} sample="สวัสดี ยินดีต้อนรับ" big delay={T.fonts + 0.2} />
         </div>
         {kit.fonts.reason && <p className="mt-3 text-sm text-black/55">{kit.fonts.reason}</p>}
       </Section>
 
-      <Section title="Slogans" delay={T.slogans}>
+      <Section title={t("Slogans")} delay={T.slogans}>
         <div className="grid gap-4 sm:grid-cols-2">
           {kit.slogans.map((s, i) => (
             <motion.div key={i} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
@@ -80,11 +82,11 @@ export default function BrandReveal({
         </div>
       </Section>
 
-      <Section title="In the real world" hint="Move your mouse over the cards" delay={T.mockups}>
+      <Section title={t("In the real world")} hint={t("Move your mouse over the cards")} delay={T.mockups}>
         <Mockups kit={kit} delay={T.mockups} />
       </Section>
 
-      <Section title="Brand personality" delay={T.details}>
+      <Section title={t("Brand personality")} delay={T.details}>
         <div className="grid gap-6 md:grid-cols-[1.4fr_1fr]">
           <div className="space-y-3 rounded-2xl border border-black/10 bg-white p-6" style={{ fontFamily: body }}>
             <div className="flex flex-wrap gap-2">
@@ -94,22 +96,22 @@ export default function BrandReveal({
               ))}
             </div>
             <p className="text-black/80">{kit.story}</p>
-            <p className="text-sm text-black/55"><b>Voice:</b> {kit.tone}</p>
-            <p className="text-sm text-black/55"><b>Logo idea:</b> {kit.logo.symbol} ({kit.logo.style})</p>
+            <p className="text-sm text-black/55"><b>{t("Voice:")}</b> {kit.tone}</p>
+            <p className="text-sm text-black/55"><b>{t("Logo idea:")}</b> {kit.logo.symbol} ({kit.logo.style})</p>
           </div>
           <div className="rounded-2xl border border-black/10 bg-white p-6">
-            <p className="mb-3 text-sm font-semibold">Accessibility check (WCAG)</p>
+            <p className="mb-3 text-sm font-semibold">{t("Accessibility check (WCAG)")}</p>
             <ul className="space-y-2 text-sm">
               {kit.contrast.map((c) => (
                 <li key={c.pair} className="flex items-center justify-between gap-2">
                   <span className="text-black/65">{c.pair}</span>
                   <span className={c.passes ? "text-emerald-600" : "text-red-600"}>
-                    {c.ratio}:1 {c.passes ? "✓" : "✗"}{c.fixed ? " (auto-fixed)" : ""}
+                    {c.ratio}:1 {c.passes ? "✓" : "✗"}{c.fixed ? ` (${t("auto-fixed")})` : ""}
                   </span>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 text-xs text-black/40">Generated with {kit.source}{kit.model ? ` · ${kit.model}` : ""}</p>
+            <p className="mt-4 text-xs text-black/40">{t("Generated with")} {kit.source}{kit.model ? ` · ${kit.model}` : ""}</p>
           </div>
         </div>
       </Section>

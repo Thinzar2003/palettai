@@ -1,13 +1,22 @@
-from fastapi import APIRouter, Depends, HTTPException, Response
+import logging
+import time
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Response
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..config import COOKIE_NAME, COOKIE_SECURE, DAILY_GENERATIONS, TOKEN_DAYS
+from ..config import APP_URL, COOKIE_NAME, COOKIE_SECURE, DAILY_GENERATIONS, TOKEN_DAYS
+from ..mailer import mail_configured, reset_email, send_email
 from ..db import get_db
 from ..deps import current_user, generations_today
 from ..models import User
-from ..schemas import LoginIn, RegisterIn, UserOut
-from ..security import create_token, hash_password, verify_password
+from ..schemas import ForgotIn, LoginIn, RegisterIn, ResetIn, UserOut
+from ..security import (RESET_MINUTES, create_reset_token, create_token, hash_password, read_reset_token,
+                        reset_token_matches, verify_password)
+
+log = logging.getLogger("auth")
+_last_reset: dict[str, float] = {}   # email -> last request time (simple per-process throttle)
+RESET_COOLDOWN = 120                 # seconds between reset emails to the same address
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -52,4 +61,35 @@ def logout(response: Response):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(current_user), db: Session = Depends(get_db)):
+    return _user_out(db, user)
+
+
+@router.post("/forgot")
+async def forgot_password(body: ForgotIn, background: BackgroundTasks, db: Session = Depends(get_db)):
+    """Always answers the same way, so nobody can use it to find out which emails have accounts."""
+    email = body.email.strip().lower()
+    reply = {"ok": True, "message": "If an account exists for this email, a reset link is on its way."}
+    now = time.monotonic()
+    if now - _last_reset.get(email, -RESET_COOLDOWN) < RESET_COOLDOWN:
+        return reply
+    _last_reset[email] = now
+    user = db.scalar(select(User).where(User.email == email))
+    if user:
+        link = f"{APP_URL}/reset-password?token={create_reset_token(user.id, user.password_hash)}"
+        subject, html_body, text_body = reset_email(user.name, link, RESET_MINUTES)
+        if not mail_configured():
+            log.warning("Password reset link for %s (email not configured): %s", email, link)
+        background.add_task(send_email, user.email, subject, html_body, text_body)
+    return reply
+
+
+@router.post("/reset", response_model=UserOut)
+def reset_password(body: ResetIn, response: Response, db: Session = Depends(get_db)):
+    data = read_reset_token(body.token)
+    user = db.get(User, data[0]) if data else None
+    if not user or not reset_token_matches(data[1], user.password_hash):
+        raise HTTPException(status_code=400, detail="This reset link is invalid, expired or already used. Please request a new one.")
+    user.password_hash = hash_password(body.password)
+    db.commit()
+    _set_session(response, user)
     return _user_out(db, user)

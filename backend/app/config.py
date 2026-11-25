@@ -40,3 +40,9 @@ TOKEN_DAYS = int(os.getenv("TOKEN_DAYS", "7"))
 COOKIE_NAME = "bs_session"
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"  # true in production (HTTPS)
 DAILY_GENERATIONS = int(os.getenv("DAILY_GENERATIONS", "20"))  # protects the free AI quota
+
+# Email (password reset). Render's free plan blocks SMTP, so mail goes through Brevo's HTTPS API.
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "").strip()
+MAIL_FROM = os.getenv("MAIL_FROM", "").strip()            # a sender address verified in Brevo
+MAIL_FROM_NAME = os.getenv("MAIL_FROM_NAME", "Palettai")
+APP_URL = os.getenv("APP_URL", "http://localhost:3000").rstrip("/")   # where reset links point

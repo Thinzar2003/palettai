@@ -99,6 +99,11 @@ export default function AuthForm({ mode }: { mode: "login" | "register" }) {
             className={input}
           />
           {isRegister && <span className="mt-1 block text-xs text-black/40">{t("At least 8 characters")}</span>}
+          {!isRegister && (
+            <Link href="/forgot-password" className="mt-2 inline-block text-xs text-studio-accent hover:underline">
+              {t("Forgot password?")}
+            </Link>
+          )}
         </label>
 
         {error && <p className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}

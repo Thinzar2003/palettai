@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useState } from "react";
+import { useT } from "@/lib/i18n";
 
 const STEPS = [
   "Reading your brief…",
@@ -16,10 +17,11 @@ const SWATCHES = ["#FF5A36", "#FFC93C", "#18B6C9", "#4E7A3A", "#22223B"];
 
 /** Loading state: a little "designer's desk" instead of a spinner. */
 export default function DesignerDesk() {
+  const { t } = useT();
   const [i, setI] = useState(0);
   useEffect(() => {
-    const t = setInterval(() => setI((x) => (x + 1) % STEPS.length), 1600);
-    return () => clearInterval(t);
+    const timer = setInterval(() => setI((x) => (x + 1) % STEPS.length), 1600);
+    return () => clearInterval(timer);
   }, []);
 
   return (
@@ -67,7 +69,7 @@ export default function DesignerDesk() {
             exit={{ opacity: 0, y: -8 }}
             className="font-display text-lg"
           >
-            {STEPS[i]}
+            {t(STEPS[i])}
           </motion.p>
         </AnimatePresence>
       </div>

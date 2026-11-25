@@ -101,6 +101,15 @@ class LoginIn(BaseModel):
     password: str = Field(max_length=128)
 
 
+class ForgotIn(BaseModel):
+    email: str = Field(max_length=255)
+
+
+class ResetIn(BaseModel):
+    token: str = Field(max_length=1000)
+    password: str = Field(min_length=8, max_length=128)
+
+
 class UserOut(BaseModel):
     id: int
     name: str

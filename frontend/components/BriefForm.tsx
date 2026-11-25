@@ -4,6 +4,7 @@ import { motion } from "motion/react";
 import { useState } from "react";
 import type { Brief, Language } from "@/lib/types";
 import ImportPanel from "./ImportPanel";
+import { useT } from "@/lib/i18n";
 
 const VIBES = ["Warm", "Minimal", "Playful", "Premium", "Natural", "Bold", "Retro", "Techy"];
 
@@ -35,6 +36,7 @@ export default function BriefForm({
   onSubmit: (b: Brief) => void;
   initial?: Brief | null;
 }) {
+  const { t } = useT();
   const [brief, setBrief] = useState<Brief>(initial ?? empty);
   const set = <K extends keyof Brief>(k: K, v: Brief[K]) => setBrief((b) => ({ ...b, [k]: v }));
   const toggleVibe = (v: string) =>
@@ -59,7 +61,7 @@ export default function BriefForm({
       />
 
       <div className="mb-6 flex flex-wrap items-center gap-2 text-sm">
-        <span className="text-black/50">Or try an example:</span>
+        <span className="text-black/50">{t("Or try an example:")}</span>
         {EXAMPLES.map((ex) => (
           <button
             key={ex.business_name}
@@ -72,21 +74,21 @@ export default function BriefForm({
         ))}
       </div>
 
-      <Field label="Business name">
+      <Field label={t("Business name")}>
         <input
           value={brief.business_name}
           onChange={(e) => set("business_name", e.target.value)}
-          placeholder="e.g. Cha Yen House"
+          placeholder={t("e.g. Cha Yen House")}
           maxLength={60}
           className={inputCls}
         />
       </Field>
 
-      <Field label="What does your business do?">
+      <Field label={t("What does your business do?")}>
         <textarea
           value={brief.description}
           onChange={(e) => set("description", e.target.value)}
-          placeholder="A cozy Thai milk tea shop near a university…"
+          placeholder={t("A cozy Thai milk tea shop near a university…")}
           rows={3}
           maxLength={600}
           className={`${inputCls} resize-none`}
@@ -94,15 +96,15 @@ export default function BriefForm({
       </Field>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <Field label="Industry (optional)">
+        <Field label={t("Industry (optional)")}>
           <input value={brief.industry ?? ""} onChange={(e) => set("industry", e.target.value)} className={inputCls} />
         </Field>
-        <Field label="Who are your customers? (optional)">
+        <Field label={t("Who are your customers? (optional)")}>
           <input value={brief.audience ?? ""} onChange={(e) => set("audience", e.target.value)} className={inputCls} />
         </Field>
       </div>
 
-      <Field label="Vibe (pick up to 3)">
+      <Field label={t("Vibe (pick up to 3)")}>
         <div className="flex flex-wrap gap-2">
           {VIBES.map((v) => {
             const on = brief.vibes.includes(v);
@@ -116,14 +118,14 @@ export default function BriefForm({
                   on ? "bg-studio-ink text-white" : "border border-black/15 hover:bg-black/5"
                 }`}
               >
-                {v}
+                {t(v)}
               </motion.button>
             );
           })}
         </div>
       </Field>
 
-      <Field label="Language">
+      <Field label={t("Language")}>
         <div className="inline-flex rounded-full bg-black/5 p-1 text-sm">
           {(
             [
@@ -151,7 +153,7 @@ export default function BriefForm({
         whileTap={valid ? { scale: 0.98 } : undefined}
         className="mt-2 w-full rounded-2xl bg-studio-accent py-4 font-display text-lg font-semibold text-on-accent shadow-lg shadow-studio-accent/30 transition disabled:cursor-not-allowed disabled:opacity-40"
       >
-        Create my brand ✨
+        {t("Create my brand ✨")}
       </motion.button>
     </motion.form>
   );

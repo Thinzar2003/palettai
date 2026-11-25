@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { useT } from "@/lib/i18n";
 
 const PORTFOLIO = "https://thinzar2003.github.io/Thinzar-_-portfolio/";
 const GITHUB = "https://github.com/Thinzar2003";
@@ -8,6 +9,7 @@ const REPO = "https://github.com/Thinzar2003/palettai";
 
 /** Site footer with credit to the creator. */
 export default function Footer() {
+  const { t } = useT();
   return (
     <footer className="no-print relative z-10 mt-16 border-t border-black/5">
       <div className="mx-auto flex max-w-6xl flex-col items-center justify-between gap-4 px-5 py-8 text-sm sm:flex-row sm:px-8">
@@ -15,7 +17,7 @@ export default function Footer() {
           <span className="font-display font-extrabold text-black">
             Palett<span className="text-studio-accent">ai</span>
           </span>{" "}
-          · Designed &amp; built by{" "}
+          · {t("Designed & built by")}{" "}
           <motion.a
             href={PORTFOLIO}
             target="_blank"
@@ -27,9 +29,9 @@ export default function Footer() {
           </motion.a>
         </p>
         <nav className="flex flex-wrap items-center gap-2">
-          <FooterLink href={PORTFOLIO}>🌐 Portfolio</FooterLink>
+          <FooterLink href={PORTFOLIO}>{t("🌐 Portfolio")}</FooterLink>
           <FooterLink href={GITHUB}>GitHub</FooterLink>
-          <FooterLink href={REPO}>Source code</FooterLink>
+          <FooterLink href={REPO}>{t("Source code")}</FooterLink>
         </nav>
       </div>
     </footer>

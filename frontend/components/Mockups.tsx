@@ -5,6 +5,7 @@ import LogoMark from "./LogoMark";
 import Tilt from "./Tilt";
 import { selectedIconSvg } from "./BrandIcon";
 import { colorOf, type BrandKit } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 /** Template mockups filled with the brand's real colours, fonts and logo. */
 export default function Mockups({ kit, delay = 0 }: { kit: BrandKit; delay?: number }) {
@@ -30,7 +31,7 @@ export default function Mockups({ kit, delay = 0 }: { kit: BrandKit; delay?: num
             <p className="text-xs opacity-80">{kit.tagline}</p>
           </div>
         </div>
-        <Caption>Business card</Caption>
+        <Caption>{"Business card"}</Caption>
       </TiltCard>
 
       {/* Instagram post */}
@@ -47,7 +48,7 @@ export default function Mockups({ kit, delay = 0 }: { kit: BrandKit; delay?: num
           )}
           <p className="relative mt-4 text-xs uppercase tracking-[0.2em] opacity-70">@{kit.brand_name.toLowerCase().replace(/\s+/g, "")}</p>
         </div>
-        <Caption>Instagram post</Caption>
+        <Caption>{"Instagram post"}</Caption>
       </TiltCard>
 
       {/* Cup */}
@@ -64,7 +65,7 @@ export default function Mockups({ kit, delay = 0 }: { kit: BrandKit; delay?: num
             </div>
           </div>
         </div>
-        <Caption>Packaging</Caption>
+        <Caption>{"Packaging"}</Caption>
       </TiltCard>
     </div>
   );
@@ -79,5 +80,6 @@ function TiltCard({ children, delay }: { children: React.ReactNode; delay: numbe
 }
 
 function Caption({ children }: { children: React.ReactNode }) {
-  return <p className="mt-3 text-center text-xs uppercase tracking-widest text-black/45">{children}</p>;
+  const { t } = useT();
+  return <p className="mt-3 text-center text-xs uppercase tracking-widest text-black/45">{typeof children === "string" ? t(children) : children}</p>;
 }

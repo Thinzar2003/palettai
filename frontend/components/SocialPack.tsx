@@ -9,6 +9,7 @@ import Tilt from "./Tilt";
 import { api } from "@/lib/api";
 import { downloadDataUrl, downloadText, slugFile } from "@/lib/download";
 import type { BrandDetail, BrandKit, SocialPost } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
@@ -27,6 +28,7 @@ export default function SocialPack({
   onError: (msg: string) => void;
   onToast: (msg: string) => void;
 }) {
+  const { t } = useT();
   const [busy, setBusy] = useState(false);
   const posts = kit.social_posts ?? [];
 
@@ -35,7 +37,7 @@ export default function SocialPack({
     try {
       onChange(await api.makeSocial(brandId), true);
     } catch (e) {
-      onError(e instanceof Error ? e.message : "Post generation failed");
+      onError(e instanceof Error ? e.message : t("Post generation failed"));
     } finally {
       setBusy(false);
     }
@@ -54,9 +56,9 @@ export default function SocialPack({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4 rounded-3xl border border-black/10 bg-white p-6">
         <div>
-          <p className="font-display text-xl font-bold">7-day social post pack 📱</p>
+          <p className="font-display text-xl font-bold">{t("7-day social post pack 📱")}</p>
           <p className="text-sm text-black/55">
-            Instagram/Facebook posts in your brand style, with {kit.slogans.some((s) => s.th) ? "Thai & English" : "English"} captions.
+            {kit.slogans.some((s) => s.th) ? t("Instagram/Facebook posts in your brand style, with Thai & English captions.") : t("Instagram/Facebook posts in your brand style, with English captions.")}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -74,16 +76,16 @@ export default function SocialPack({
               onClick={generate}
               className="rounded-full bg-studio-accent px-5 py-2 text-sm font-semibold text-on-accent shadow-md shadow-studio-accent/30 disabled:opacity-50"
             >
-              {busy ? "Planning your week…" : posts.length ? "↻ New week of posts" : "✨ Generate 7 posts"}
+              {busy ? t("Planning your week…") : posts.length ? t("↻ New week of posts") : t("✨ Generate 7 posts")}
             </motion.button>
           )}
         </div>
       </div>
 
-      {busy && <Spinner label="Writing captions and designing posts…" />}
+      {busy && <Spinner label={t("Writing captions and designing posts…")} />}
 
       {!busy && posts.length === 0 && (
-        <p className="py-10 text-center text-black/45">No posts yet. Generate a week of content in one click.</p>
+        <p className="py-10 text-center text-black/45">{t("No posts yet. Generate a week of content in one click.")}</p>
       )}
 
       {!busy && posts.length > 0 && (
@@ -110,6 +112,7 @@ function PostItem({
   onError: (m: string) => void;
   onToast: (m: string) => void;
 }) {
+  const { t } = useT();
   const ref = useRef<HTMLDivElement>(null);
   const [saving, setSaving] = useState(false);
   const caption = [post.caption_en, post.caption_th, post.hashtags.map((h) => `#${h}`).join(" ")].filter(Boolean).join("\n\n");
@@ -122,7 +125,7 @@ function PostItem({
       const url = await toPng(ref.current, { pixelRatio: 3, cacheBust: true });
       downloadDataUrl(url, `${slugFile(kit.brand_name)}-day${post.day}.png`);
     } catch {
-      onError("Could not export the image. Try again, or take a screenshot.");
+      onError(t("Could not export the image. Try again, or take a screenshot."));
     } finally {
       setSaving(false);
     }
@@ -131,16 +134,16 @@ function PostItem({
   const copy = async () => {
     try {
       await navigator.clipboard.writeText(caption);
-      onToast("Caption copied!");
+      onToast(t("Caption copied!"));
     } catch {
-      onError("Clipboard blocked by the browser");
+      onError(t("Clipboard blocked by the browser"));
     }
   };
 
   return (
     <motion.div initial={{ opacity: 0, y: 30, rotate: -2 }} animate={{ opacity: 1, y: 0, rotate: 0 }} transition={{ delay: index * 0.08, type: "spring" }}>
       <p className="mb-2 text-xs font-medium uppercase tracking-widest text-black/45">
-        Day {post.day} · {DAYS[post.day - 1]} · {post.theme}
+        {t("Day {n}", { n: post.day })} · {t(DAYS[post.day - 1] ?? "")} · {post.theme}
       </p>
       <Tilt max={10} className="rounded-[18px]">
         <PostCard ref={ref} kit={kit} post={post} />
@@ -155,10 +158,10 @@ function PostItem({
         <p className="mt-2 text-xs text-studio-accent">{post.hashtags.map((h) => `#${h}`).join(" ")}</p>
         <div className="mt-3 flex gap-2 text-xs">
           <button type="button" onClick={savePng} disabled={saving} className="rounded-full border border-black/15 px-3 py-1 hover:bg-black/5 disabled:opacity-50">
-            {saving ? "Saving…" : "⤓ PNG 1080px"}
+            {saving ? t("Saving…") : "⤓ PNG 1080px"}
           </button>
           <button type="button" onClick={copy} className="rounded-full border border-black/15 px-3 py-1 hover:bg-black/5">
-            ⧉ Copy caption
+            {t("⧉ Copy caption")}
           </button>
         </div>
       </div>

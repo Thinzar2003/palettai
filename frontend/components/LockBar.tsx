@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import type { LockPart } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 export const LOCK_LABELS: Record<LockPart, string> = {
   palette: "Colours",
@@ -23,12 +24,13 @@ export default function LockBar({
   onRegenerate: () => void;
   busy: boolean;
 }) {
+  const { t } = useT();
   const parts = Object.keys(LOCK_LABELS) as LockPart[];
   const allLocked = locked.length === parts.length;
   return (
     <div className="rounded-3xl border border-black/10 bg-white p-5">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <p className="font-display text-lg font-bold">Love some parts? Lock them 🔒</p>
+        <p className="font-display text-lg font-bold">{t("Love some parts? Lock them 🔒")}</p>
         <p className="text-xs text-black/45">Locked parts stay; the AI redesigns the rest to match.</p>
       </div>
       <div className="flex flex-wrap items-center gap-2">
@@ -47,7 +49,7 @@ export default function LockBar({
               <motion.span key={String(on)} initial={{ rotate: -30, scale: 0.6 }} animate={{ rotate: 0, scale: 1 }}>
                 {on ? "🔒" : "🔓"}
               </motion.span>
-              {LOCK_LABELS[p]}
+              {t(LOCK_LABELS[p])}
             </motion.button>
           );
         })}
@@ -59,7 +61,7 @@ export default function LockBar({
           onClick={onRegenerate}
           className="ml-auto rounded-full bg-studio-accent px-5 py-2 text-sm font-semibold text-on-accent shadow-md shadow-studio-accent/30 disabled:opacity-40"
         >
-          {busy ? "Designing…" : locked.length ? "↻ Regenerate the rest" : "↻ Regenerate all"}
+          {busy ? t("Designing…") : locked.length ? t("↻ Regenerate the rest") : t("↻ Regenerate all")}
         </motion.button>
       </div>
     </div>

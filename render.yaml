@@ -31,3 +31,11 @@ services:
         sync: false
       - key: LLM_PROVIDERS
         value: gemini,groq,openrouter
+      - key: BREVO_API_KEY       # password-reset emails (brevo.com, free)
+        sync: false
+      - key: MAIL_FROM           # the sender email you verified in Brevo
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: Palettai
+      - key: APP_URL
+        value: https://palettai.vercel.app

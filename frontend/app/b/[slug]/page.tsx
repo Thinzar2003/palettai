@@ -7,9 +7,11 @@ import BrandReveal from "@/components/BrandReveal";
 import Spinner from "@/components/Spinner";
 import { api } from "@/lib/api";
 import type { PublicBrand } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 /** Public, read-only brand page that owners can share with clients. */
 export default function PublicBrandPage() {
+  const { t } = useT();
   const { slug } = useParams<{ slug: string }>();
   const [brand, setBrand] = useState<PublicBrand | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,22 +26,22 @@ export default function PublicBrandPage() {
         <p className="text-5xl">🔒</p>
         <p className="mt-4 text-lg">{error}</p>
         <Link href="/" className="mt-4 inline-block text-studio-accent underline">
-          Go to Palettai
+          {t("Go to Palettai")}
         </Link>
       </div>
     );
   }
-  if (!brand) return <Spinner label="Loading brand…" />;
+  if (!brand) return <Spinner label={t("Loading brand…")} />;
 
   return (
     <>
-      <p className="mx-auto mb-8 max-w-5xl text-xs uppercase tracking-[0.25em] text-black/40">Brand guidelines</p>
+      <p className="mx-auto mb-8 max-w-5xl text-xs uppercase tracking-[0.25em] text-black/40">{t("Brand guidelines")}</p>
       <BrandReveal kit={brand.kit} />
       <div className="mx-auto max-w-5xl rounded-3xl bg-studio-ink p-8 text-center text-white">
-        <p className="font-display text-2xl font-bold">Made with Palettai ✦</p>
-        <p className="mt-1 text-white/60">Create a brand like this for your business, free.</p>
+        <p className="font-display text-2xl font-bold">{t("Made with Palettai ✦")}</p>
+        <p className="mt-1 text-white/60">{t("Create a brand like this for your business, free.")}</p>
         <Link href="/register" className="mt-5 inline-block rounded-full bg-studio-accent px-6 py-3 font-semibold">
-          Create my brand ✨
+          {t("Create my brand ✨")}
         </Link>
       </div>
     </>

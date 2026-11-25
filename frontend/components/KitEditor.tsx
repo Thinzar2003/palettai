@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import type { BrandDetail, BrandKit, FontLists, KitEdit, PaletteColor } from "@/lib/types";
 import { useGoogleFonts } from "@/lib/useGoogleFonts";
+import { useT } from "@/lib/i18n";
 
 /** Edit colours, fonts and words by hand. Saving creates a new version (undo via History). */
 export default function KitEditor({
@@ -20,6 +21,7 @@ export default function KitEditor({
   onCancel: () => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useT();
   const [palette, setPalette] = useState<PaletteColor[]>(kit.palette.map((c) => ({ ...c })));
   const [fonts, setFonts] = useState({ heading: kit.fonts.heading, body: kit.fonts.body, thai: kit.fonts.thai });
   const [name, setName] = useState(kit.brand_name);
@@ -51,7 +53,7 @@ export default function KitEditor({
     try {
       onSaved(await api.editKit(brandId, edit));
     } catch (e) {
-      onError(e instanceof Error ? e.message : "Save failed");
+      onError(e instanceof Error ? e.message : t("Save failed"));
     } finally {
       setSaving(false);
     }
@@ -67,13 +69,13 @@ export default function KitEditor({
     >
       <div className="space-y-8 p-6">
         <div className="flex items-center justify-between">
-          <p className="font-display text-xl font-bold">✎ Edit by hand</p>
-          <p className="text-xs text-black/45">Saving creates a new version. Low-contrast colours get auto-fixed.</p>
+          <p className="font-display text-xl font-bold">{t("✎ Edit by hand")}</p>
+          <p className="text-xs text-black/45">{t("Saving creates a new version. Low-contrast colours get auto-fixed.")}</p>
         </div>
 
         {/* Colours */}
         <section>
-          <p className="mb-3 text-sm font-semibold">Colours</p>
+          <p className="mb-3 text-sm font-semibold">{t("Colours")}</p>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
             {palette.map((c, i) => (
               <div key={c.role} className="rounded-2xl border border-black/10 p-3">
@@ -101,7 +103,7 @@ export default function KitEditor({
 
         {/* Fonts */}
         <section>
-          <p className="mb-3 text-sm font-semibold">Fonts</p>
+          <p className="mb-3 text-sm font-semibold">{t("Fonts")}</p>
           <div className="grid gap-3 sm:grid-cols-3">
             {(["heading", "body", "thai"] as const).map((role) => (
               <label key={role} className="block rounded-2xl border border-black/10 p-3">
@@ -128,21 +130,21 @@ export default function KitEditor({
         {/* Words */}
         <section className="grid gap-4 md:grid-cols-2">
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold">Brand name</span>
+            <span className="mb-1 block text-sm font-semibold">{t("Brand name")}</span>
             <input value={name} maxLength={80} onChange={(e) => setName(e.target.value)} className={input} />
           </label>
           <label className="block">
-            <span className="mb-1 block text-sm font-semibold">Tagline</span>
+            <span className="mb-1 block text-sm font-semibold">{t("Tagline")}</span>
             <input value={tagline} maxLength={160} onChange={(e) => setTagline(e.target.value)} className={input} />
           </label>
           <label className="block md:col-span-2">
-            <span className="mb-1 block text-sm font-semibold">Tone of voice</span>
+            <span className="mb-1 block text-sm font-semibold">{t("Tone of voice")}</span>
             <textarea value={tone} maxLength={400} rows={2} onChange={(e) => setTone(e.target.value)} className={`${input} resize-none`} />
           </label>
         </section>
 
         <section>
-          <p className="mb-3 text-sm font-semibold">Slogans</p>
+          <p className="mb-3 text-sm font-semibold">{t("Slogans")}</p>
           <div className="space-y-2">
             {slogans.map((s, i) => (
               <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
@@ -163,7 +165,7 @@ export default function KitEditor({
                   type="button"
                   onClick={() => setSlogans((l) => l.filter((_, k) => k !== i))}
                   className="rounded-xl px-3 text-black/40 hover:bg-black/5 hover:text-black"
-                  aria-label="Remove slogan"
+                  aria-label={t("Remove slogan")}
                 >
                   ✕
                 </button>
@@ -175,7 +177,7 @@ export default function KitEditor({
                 onClick={() => setSlogans((l) => [...l, { en: "", th: "" }])}
                 className="text-sm text-studio-accent hover:underline"
               >
-                + Add slogan
+                {t("+ Add slogan")}
               </button>
             )}
           </div>
@@ -183,7 +185,7 @@ export default function KitEditor({
 
         <div className="flex justify-end gap-2 border-t border-black/10 pt-5">
           <button type="button" onClick={onCancel} className="rounded-full px-5 py-2 text-sm hover:bg-black/5">
-            Cancel
+            {t("Cancel")}
           </button>
           <button
             type="button"
@@ -191,7 +193,7 @@ export default function KitEditor({
             disabled={saving}
             className="rounded-full bg-studio-accent px-6 py-2 text-sm font-semibold text-on-accent shadow-md shadow-studio-accent/30 disabled:opacity-50"
           >
-            {saving ? "Saving…" : "Save as new version"}
+            {saving ? t("Saving…") : t("Save as new version")}
           </button>
         </div>
       </div>

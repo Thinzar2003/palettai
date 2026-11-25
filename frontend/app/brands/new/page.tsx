@@ -9,8 +9,10 @@ import RequireAuth from "@/components/RequireAuth";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Brief } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 function NewBrand() {
+  const { t } = useT();
   const router = useRouter();
   const { refresh } = useAuth();
   const [brief, setBrief] = useState<Brief | null>(null);
@@ -26,7 +28,7 @@ function NewBrand() {
       refresh(); // update "x/20 today" in the nav
       router.push(`/brands/${brand.id}?new=1`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
+      setError(e instanceof Error ? e.message : t("Something went wrong"));
       setLoading(false);
     }
   };
@@ -41,9 +43,9 @@ function NewBrand() {
         <motion.div key="form" exit={{ opacity: 0, y: -20 }}>
           <div className="mx-auto mb-10 max-w-3xl text-center">
             <h1 className="font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl">
-              Tell us about the business.
+              {t("Tell us about the business.")}
             </h1>
-            <p className="mt-3 text-lg text-black/60">The more specific you are, the better the brand.</p>
+            <p className="mt-3 text-lg text-black/60">{t("The more specific you are, the better the brand.")}</p>
           </div>
           {error && <p className="mx-auto mb-4 max-w-2xl rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
           <BriefForm onSubmit={generate} initial={brief} />

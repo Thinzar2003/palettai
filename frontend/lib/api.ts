@@ -33,6 +33,8 @@ export const api = {
   login: (email: string, password: string) => post<User>("/auth/login", { email, password }),
   register: (name: string, email: string, password: string) => post<User>("/auth/register", { name, email, password }),
   logout: () => post<void>("/auth/logout"),
+  forgotPassword: (email: string) => post<{ ok: boolean; message: string }>("/auth/forgot", { email }),
+  resetPassword: (token: string, password: string) => post<User>("/auth/reset", { token, password }),
 
   // brands
   listBrands: () => request<BrandSummary[]>("/brands"),

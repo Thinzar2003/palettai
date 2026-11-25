@@ -2,6 +2,7 @@
 
 import { motion } from "motion/react";
 import { timeAgo, type VersionOut } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 /** Timeline of versions: newest first; click to preview, restore old ones. */
 export default function VersionHistory({
@@ -19,10 +20,11 @@ export default function VersionHistory({
   onRestore: (v: number) => void;
   busy: boolean;
 }) {
+  const { t } = useT();
   const list = [...versions].reverse();
   return (
     <div className="rounded-3xl border border-black/10 bg-white p-5">
-      <p className="mb-4 font-display text-lg font-bold">History</p>
+      <p className="mb-4 font-display text-lg font-bold">{t("History")}</p>
       <ol className="relative space-y-1 border-l border-black/10 pl-4">
         {list.map((v, i) => {
           const active = v.version === viewing;
@@ -46,7 +48,7 @@ export default function VersionHistory({
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold">v{v.version}</span>
                   {v.version === current && (
-                    <span className="rounded-full bg-emerald-100 px-2 text-[10px] font-medium text-emerald-700">CURRENT</span>
+                    <span className="rounded-full bg-emerald-100 px-2 text-[10px] font-medium text-emerald-700">{t("CURRENT")}</span>
                   )}
                   <span className="ml-auto flex gap-0.5">
                     {v.kit.palette.map((c) => (
@@ -65,7 +67,7 @@ export default function VersionHistory({
                   onClick={() => onRestore(v.version)}
                   className="mb-2 ml-3 mt-1 rounded-full border border-black/15 px-3 py-1 text-xs hover:bg-black/5 disabled:opacity-40"
                 >
-                  ↩ Restore this version
+                  {t("↩ Restore this version")}
                 </button>
               )}
             </motion.li>

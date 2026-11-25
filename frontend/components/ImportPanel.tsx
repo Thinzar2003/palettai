@@ -5,6 +5,7 @@ import { useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { Brief, ImportOut } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 /**
  * "Already have a business online?" Paste a website or Facebook page link (or a description)
@@ -18,6 +19,7 @@ export default function ImportPanel({
   onImported: (brief: Brief) => void;
   onReferenceChange: (reference: string | null) => void;
 }) {
+  const { t } = useT();
   const { refresh } = useAuth();
   const [url, setUrl] = useState("");
   const [text, setText] = useState("");
@@ -30,7 +32,7 @@ export default function ImportPanel({
   const run = async () => {
     if (busy) return;
     if (!url.trim() && text.trim().length < 20) {
-      setError("Paste a link, or a short description (20+ characters).");
+      setError(t("Paste a link, or a short description (20+ characters)."));
       return;
     }
     setBusy(true);
@@ -42,7 +44,7 @@ export default function ImportPanel({
       onImported(out.brief);
       refresh();
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Couldn't read that page";
+      const msg = e instanceof Error ? e.message : t("Couldn't read that page");
       setError(msg);
       if (/paste|description|login|JavaScript/i.test(msg)) setShowPaste(true);
     } finally {
@@ -62,7 +64,7 @@ export default function ImportPanel({
 
   return (
     <div className="mb-8 rounded-2xl border border-dashed border-studio-accent/40 bg-studio-accent/[0.04] p-5">
-      <p className="font-display text-lg font-bold">Already have a business online? 🌐</p>
+      <p className="font-display text-lg font-bold">{t("Already have a business online? 🌐")}</p>
       <p className="mb-3 text-sm text-black/55">
         Paste your website or Facebook page. We&apos;ll fill in the brief and refresh your current look.
       </p>
@@ -72,7 +74,7 @@ export default function ImportPanel({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           onKeyDown={onEnter}
-          placeholder="https://your-shop.com  or  facebook.com/yourpage"
+          placeholder={t("https://your-shop.com  or  facebook.com/yourpage")}
           maxLength={500}
           disabled={busy}
           className={input}
@@ -84,7 +86,7 @@ export default function ImportPanel({
           whileTap={{ scale: 0.96 }}
           className="shrink-0 rounded-xl bg-studio-ink px-5 py-3 text-sm font-semibold text-white disabled:opacity-50"
         >
-          {busy ? "Reading…" : "Read my page"}
+          {busy ? t("Reading…") : t("Read my page")}
         </motion.button>
       </div>
 
@@ -93,7 +95,7 @@ export default function ImportPanel({
         onClick={() => setShowPaste((s) => !s)}
         className="mt-2 text-xs text-black/50 underline hover:text-black"
       >
-        {showPaste ? "Hide" : "No website? Paste a description instead"}
+        {showPaste ? t("Hide") : t("No website? Paste a description instead")}
       </button>
 
       <AnimatePresence>
@@ -106,7 +108,7 @@ export default function ImportPanel({
               rows={3}
               maxLength={3000}
               disabled={busy}
-              placeholder="e.g. Our Facebook 'About' text, or: Family-run Burmese teahouse near Rangsit University since 2019…"
+              placeholder={t("e.g. Our Facebook 'About' text, or: Family-run Burmese teahouse near Rangsit University since 2019…")}
               className={`${input} mt-2 resize-none text-sm`}
             />
           </motion.div>
@@ -119,7 +121,7 @@ export default function ImportPanel({
             <motion.span key={c} className="h-2 w-2 rounded-full" style={{ background: c }}
               animate={{ y: [0, -6, 0] }} transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.12 }} />
           ))}
-          Reading the page and filling in your brief…
+          {t("Reading the page and filling in your brief…")}
         </div>
       )}
 
@@ -130,13 +132,13 @@ export default function ImportPanel({
           <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             className="mt-4 rounded-xl border border-black/10 bg-white p-4 text-sm">
             <p className="font-semibold">
-              ✓ Brief filled in{result.found.title ? ` from “${result.found.title}”` : ""}. Check it below.
+              {result.found.title ? t("✓ Brief filled in from “{title}”. Check it below.", { title: result.found.title }) : t("✓ Brief filled in. Check it below.")}
             </p>
             {(result.found.colors.length > 0 || result.found.fonts.length > 0) && (
               <div className="mt-3 flex flex-wrap items-center gap-3">
                 {result.found.colors.length > 0 && (
                   <div className="flex items-center gap-1">
-                    <span className="mr-1 text-xs text-black/50">Current colours</span>
+                    <span className="mr-1 text-xs text-black/50">{t("Current colours")}</span>
                     {result.found.colors.map((c) => (
                       <motion.span key={c} title={c} initial={{ scale: 0 }} animate={{ scale: 1 }}
                         className="h-5 w-5 rounded-md border border-black/10" style={{ background: c }} />
@@ -144,7 +146,7 @@ export default function ImportPanel({
                   </div>
                 )}
                 {result.found.fonts.length > 0 && (
-                  <span className="text-xs text-black/50">Fonts: {result.found.fonts.join(", ")}</span>
+                  <span className="text-xs text-black/50">{t("Fonts:")} {result.found.fonts.join(", ")}</span>
                 )}
               </div>
             )}
@@ -159,12 +161,12 @@ export default function ImportPanel({
                   }}
                   className="h-4 w-4 accent-[var(--color-studio-accent)]"
                 />
-                Refresh my current look <span className="text-xs text-black/40">(untick for a completely new brand)</span>
+                {t("Refresh my current look")} <span className="text-xs text-black/40">(untick for a completely new brand)</span>
               </label>
             )}
             {result.found.from_facebook && (
               <p className="mt-2 text-xs text-black/45">
-                Facebook only shares a little without logging in. Add details to the description below if needed.
+                {t("Facebook only shares a little without logging in. Add details to the description below if needed.")}
               </p>
             )}
           </motion.div>

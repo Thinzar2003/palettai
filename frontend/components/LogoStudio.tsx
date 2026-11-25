@@ -8,6 +8,7 @@ import Tilt from "./Tilt";
 import { api } from "@/lib/api";
 import { downloadBlob, downloadText, lockupSvg, slugFile, svgToPng } from "@/lib/download";
 import { colorOf, type BrandDetail, type BrandKit, type LogoStyle } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 const STYLES: { id: LogoStyle; label: string; icon: string }[] = [
   { id: "minimal", label: "Minimal", icon: "◯" },
@@ -33,6 +34,7 @@ export default function LogoStudio({
   onChange: (b: BrandDetail, aiUsed?: boolean) => void;
   onError: (msg: string) => void;
 }) {
+  const { t } = useT();
   const [busy, setBusy] = useState(false);
   const [styles, setStyles] = useState<LogoStyle[]>([]);
   const [matchColors, setMatchColors] = useState(true);
@@ -52,7 +54,7 @@ export default function LogoStudio({
     try {
       onChange(await api.makeLogos(brandId, styles, matchColors), true);
     } catch (e) {
-      onError(e instanceof Error ? e.message : "Logo generation failed");
+      onError(e instanceof Error ? e.message : t("Logo generation failed"));
     } finally {
       setBusy(false);
     }
@@ -62,7 +64,7 @@ export default function LogoStudio({
     try {
       onChange(await api.selectLogo(brandId, index));
     } catch (e) {
-      onError(e instanceof Error ? e.message : "Could not select logo");
+      onError(e instanceof Error ? e.message : t("Could not select logo"));
     }
   };
 
@@ -70,7 +72,7 @@ export default function LogoStudio({
     try {
       downloadBlob(await svgToPng(svg, 1024, background), name);
     } catch (e) {
-      onError(e instanceof Error ? e.message : "PNG export failed");
+      onError(e instanceof Error ? e.message : t("PNG export failed"));
     }
   };
 
@@ -87,14 +89,14 @@ export default function LogoStudio({
           size={170}
         />
         <div>
-          <p className="text-xs uppercase tracking-[0.25em] opacity-60">Logo</p>
+          <p className="text-xs uppercase tracking-[0.25em] opacity-60">{t("Logo")}</p>
           <h3 className="mt-1 text-3xl font-bold" style={{ fontFamily: `'${kit.fonts.heading}', sans-serif`, color: primary }}>
-            {current ? current.name || "Your logo" : "Monogram badge"}
+            {current ? current.name || t("Your logo") : t("Monogram badge")}
           </h3>
           <p className="mt-2 max-w-md opacity-75">
-            {current ? current.concept : `Brief idea: ${kit.logo.symbol || "a simple mark"}. Generate AI icons to get a real symbol.`}
+            {current ? current.concept : t("Brief idea: {idea}. Generate AI icons to get a real symbol.", { idea: kit.logo.symbol || t("a simple mark") })}
           </p>
-          <p className="mt-2 text-xs opacity-50">Drag the coin to spin it.</p>
+          <p className="mt-2 text-xs opacity-50">{t("Drag the coin to spin it.")}</p>
           {!readOnly && (
             <motion.button
               type="button"
@@ -104,7 +106,7 @@ export default function LogoStudio({
               onClick={generate}
               className="mt-5 rounded-full bg-studio-accent px-6 py-3 font-semibold text-on-accent shadow-lg shadow-studio-accent/30 disabled:opacity-50"
             >
-              {busy ? "Designing logos…" : icons.length ? "↻ Design 3 new logos" : "✒️ Design 3 logos"}
+              {busy ? t("Designing logos…") : icons.length ? t("↻ Design 3 new logos") : t("✒️ Design 3 logos")}
             </motion.button>
           )}
         </div>
@@ -113,9 +115,9 @@ export default function LogoStudio({
       {!readOnly && (
         <div className="rounded-3xl border border-black/10 bg-white p-5">
           <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-            <p className="font-display text-lg font-bold">Logo styles</p>
+            <p className="font-display text-lg font-bold">{t("Logo styles")}</p>
             <p className="text-xs text-black/45">
-              Pick up to 3 (one logo each). None picked = we choose for you.
+              {t("Pick up to 3 (one logo each). None picked = we choose for you.")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -148,12 +150,12 @@ export default function LogoStudio({
           <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-black/70">
             <input type="checkbox" checked={matchColors} onChange={(e) => setMatchColors(e.target.checked)}
               className="h-4 w-4 accent-[var(--color-studio-accent)]" />
-            Match brand colours <span className="text-xs text-black/40">(recolour logos with your palette)</span>
+            {t("Match brand colours")} <span className="text-xs text-black/40">{t("(recolour logos with your palette)")}</span>
           </label>
         </div>
       )}
 
-      {busy && <Spinner label="Sketching concepts → drawing with FLUX → tracing to vector…" />}
+      {busy && <Spinner label={t("Sketching concepts → drawing with FLUX → tracing to vector…")} />}
 
       {!busy && icons.length > 0 && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -171,7 +173,7 @@ export default function LogoStudio({
                       onClick={() => select(i)}
                       className="block w-full rounded-2xl p-6"
                       style={{ background: bg }}
-                      title="Use this logo"
+                      title={t("Use this logo")}
                     >
                       <motion.span
                         className="mx-auto block h-32 w-32 [&>svg]:h-full [&>svg]:w-full"
@@ -184,15 +186,15 @@ export default function LogoStudio({
                     <div className="mt-4 flex items-start justify-between gap-2">
                       <div>
                         <div className="mb-1 flex flex-wrap gap-1 text-[10px] font-medium uppercase tracking-wider">
-                          {icon.style && <span className="rounded-full bg-black/5 px-2 py-0.5 text-black/55">{styleLabel(icon.style)}</span>}
+                          {icon.style && <span className="rounded-full bg-black/5 px-2 py-0.5 text-black/55">{t(styleLabel(icon.style))}</span>}
                           <span className="rounded-full bg-black/5 px-2 py-0.5 text-black/55">
-                            {icon.source === "flux" ? "AI image → vector" : "AI-drawn SVG"}
+                            {icon.source === "flux" ? t("AI image → vector") : t("AI-drawn SVG")}
                           </span>
                         </div>
-                        <p className="font-semibold">{icon.name || `Icon ${i + 1}`}</p>
+                        <p className="font-semibold">{icon.name || t("Icon {n}", { n: i + 1 })}</p>
                         <p className="text-sm text-black/55">{icon.concept}</p>
                       </div>
-                      {active && <span className="shrink-0 rounded-full bg-studio-accent px-2 py-0.5 text-xs text-on-accent">Selected</span>}
+                      {active && <span className="shrink-0 rounded-full bg-studio-accent px-2 py-0.5 text-xs text-on-accent">{t("Selected")}</span>}
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2 text-xs">
                       <DlButton onClick={() => downloadText(icon.svg, `${file}-icon-${i + 1}.svg`, "image/svg+xml")}>SVG</DlButton>
@@ -203,7 +205,7 @@ export default function LogoStudio({
                           downloadText(lockupSvg(icon.svg, kit.brand_name, kit.fonts.heading, text), `${file}-logo-${i + 1}.svg`, "image/svg+xml")
                         }
                       >
-                        Logo + name SVG
+                        {t("Logo + name SVG")}
                       </DlButton>
                     </div>
                   </div>
@@ -216,7 +218,7 @@ export default function LogoStudio({
 
       {!busy && icons.length > 0 && selected != null && !readOnly && (
         <button type="button" onClick={() => select(null)} className="text-sm text-black/50 underline hover:text-black">
-          Use the monogram badge instead
+          {t("Use the monogram badge instead")}
         </button>
       )}
     </div>

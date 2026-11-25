@@ -4,9 +4,11 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import Tilt from "./Tilt";
 import { timeAgo, type BrandSummary } from "@/lib/types";
+import { useT } from "@/lib/i18n";
 
 /** Dashboard card: palette stripes, monogram, name in the brand's own heading font. */
 export default function BrandCard({ brand, index }: { brand: BrandSummary; index: number }) {
+  const { t } = useT();
   const { colors, heading_font, monogram, tagline, on_primary } = brand.preview;
   const primary = colors[0] ?? "#17151f";
   return (
@@ -39,7 +41,7 @@ export default function BrandCard({ brand, index }: { brand: BrandSummary; index
           </div>
           {brand.is_public && (
             <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium">
-              🌐 Public
+              {t("🌐 Public")}
             </span>
           )}
         </div>
@@ -49,7 +51,7 @@ export default function BrandCard({ brand, index }: { brand: BrandSummary; index
           </p>
           <p className="mt-1 line-clamp-1 text-sm text-black/55">{tagline}</p>
           <p className="mt-3 text-xs text-black/40">
-            v{brand.current_version} · {brand.version_count} version{brand.version_count === 1 ? "" : "s"} · updated{" "}
+            v{brand.current_version} · {t(brand.version_count === 1 ? "{n} version" : "{n} versions", { n: brand.version_count })} · {t("updated")}{" "}
             {timeAgo(brand.updated_at)}
           </p>
         </div>
