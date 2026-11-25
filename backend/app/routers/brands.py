@@ -7,7 +7,8 @@ from ..deps import check_quota, current_user, record_usage
 from ..fonts import BODY_FONTS, HEADING_FONTS, THAI_FONTS
 from ..llm import LLMError, NotConfigured
 from ..models import Brand, BrandVersion, User
-from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, KitEdit, PublicBrand,
+from ..logo_styles import LOGO_STYLES
+from ..schemas import (BrandDetail, BrandSummary, BrandUpdate, Brief, KitEdit, LogosIn, PublicBrand,
                        RefineIn, RegenerateIn, SelectIcon, VersionOut)
 from ..service import (apply_edit, create_brand, generate_icons, generate_social, locked_parts,
                        refine_kit)
@@ -136,11 +137,13 @@ async def refine(brand_id: int, body: RefineIn, user: User = Depends(current_use
 
 
 @router.post("/brands/{brand_id}/logos", response_model=BrandDetail)
-async def make_logos(brand_id: int, user: User = Depends(current_user), db: Session = Depends(get_db)):
-    """Generate SVG logo symbols and attach them to the current version."""
+async def make_logos(brand_id: int, body: LogosIn | None = None,
+                     user: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Generate 3 logo symbols (one per style) and attach them to the current version."""
+    body = body or LogosIn()
     brand = _own_brand(db, user, brand_id)
     check_quota(db, user)
-    icons = await _ai(generate_icons(Brief(**brand.brief), brand.current.kit))
+    icons = await _ai(generate_icons(Brief(**brand.brief), brand.current.kit, list(body.styles), body.match_colors))
     record_usage(db, user, "logos")
     current = brand.current
     current.kit = {**current.kit, "icons": icons, "selected_icon": 0}  # reassign so the JSON change is saved
@@ -170,6 +173,11 @@ async def make_social(brand_id: int, user: User = Depends(current_user), db: Ses
     current.kit = {**current.kit, "social_posts": posts}
     db.commit()
     return _detail(_own_brand(db, user, brand_id))
+
+
+@router.get("/logo-styles")
+def logo_styles():
+    return [{"id": k, "label": v["label"]} for k, v in LOGO_STYLES.items()]
 
 
 @router.get("/fonts")

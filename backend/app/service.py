@@ -1,7 +1,9 @@
 """Turns a raw model response into a clean, validated, accessible BrandKit."""
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
 from typing import Any
 
 from pydantic import ValidationError
@@ -10,7 +12,10 @@ from .colors import fix_palette, normalize_hex
 from .fonts import validate_fonts
 from .llm import LLMError, NotConfigured, call_provider, provider_chain
 from .mock import mock_brand
-from .prompts import (LOGO_SYSTEM, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
+from .imagegen import generate_image, image_configured
+from .logo_styles import LOGO_STYLES, build_flux_prompt, normalize_styles
+from .vectorize import image_to_logo_svg
+from .prompts import (LOGO_CONCEPT_SYSTEM, LOGO_SYSTEM, build_logo_concept_prompt, SOCIAL_SYSTEM, SYSTEM_PROMPT, build_logo_prompt, build_refine_prompt,
                       build_social_prompt, build_user_prompt)
 from .schemas import ROLES, Brief, BrandKit, KitEdit, LogoIcon, SocialPost
 from .svg import SvgError, sanitize_svg
@@ -165,21 +170,77 @@ def apply_edit(brief: Brief, kit: dict, edit: KitEdit) -> BrandKit:
     return build_kit(merged, brief, kit.get("source", "edit"), kit.get("model", ""))
 
 
-def _parse_icons(raw: dict, *_args) -> list[dict]:
-    icons = []
-    for item in (raw.get("icons") or [])[:4]:
-        try:
-            icons.append(LogoIcon(name=str(item.get("name", ""))[:60], concept=str(item.get("concept", ""))[:200],
-                                  svg=sanitize_svg(str(item.get("svg", "")))).model_dump())
-        except (SvgError, AttributeError) as e:
-            log.info("Dropped an invalid icon: %s", e)
-    if not icons:
-        raise ValueError("No valid SVG icons in the response")
-    return icons
+def _parse_icons(styles: list[str]):
+    def parse(raw: dict, *_args) -> list[dict]:
+        icons = []
+        for i, item in enumerate((raw.get("icons") or [])[:4]):
+            try:
+                style = styles[i] if i < len(styles) else str(item.get("style", ""))
+                icons.append(LogoIcon(name=str(item.get("name", ""))[:60], concept=str(item.get("concept", ""))[:200],
+                                      style=style, source="svg",
+                                      svg=sanitize_svg(str(item.get("svg", "")))).model_dump())
+            except (SvgError, AttributeError) as e:
+                log.info("Dropped an invalid icon: %s", e)
+        if not icons:
+            raise ValueError("No valid SVG icons in the response")
+        return icons
+    return parse
 
 
-async def generate_icons(brief: Brief, kit: dict) -> list[dict]:
-    icons, _, _ = await generate_with_chain(LOGO_SYSTEM, build_logo_prompt(brief, kit), _parse_icons)
+async def _plan_concepts(brief: Brief, kit: dict, styles: list[str]) -> list[dict]:
+    """Ask the text model for one distinct idea per style; fall back to the brief's idea."""
+    fallback_subject = kit.get("logo", {}).get("symbol") or kit.get("brand_name", "the brand")
+
+    def parse(raw: dict, *_args) -> list[dict]:
+        items = [i for i in (raw.get("icons") or []) if isinstance(i, dict)]
+        if not items:
+            raise ValueError("No concepts")
+        return items
+
+    try:
+        items, _, _ = await generate_with_chain(LOGO_CONCEPT_SYSTEM, build_logo_concept_prompt(brief, kit, styles), parse)
+    except (LLMError, NotConfigured) as e:
+        log.warning("Concept planning failed, using the brief's idea: %s", e)
+        items = []
+    concepts = []
+    for i, style in enumerate(styles):
+        item = items[i] if i < len(items) else {}
+        concepts.append({
+            "style": style,
+            "name": str(item.get("name") or LOGO_STYLES[style]["label"])[:60],
+            "concept": str(item.get("concept") or "")[:200],
+            "subject": str(item.get("subject") or fallback_subject)[:200],
+        })
+    return concepts
+
+
+async def _draw_and_trace(concept: dict, kit: dict, match_colors: bool) -> dict:
+    palette = {c["role"]: c["hex"] for c in kit.get("palette", [])}
+    letter = (kit.get("logo", {}).get("monogram") or kit.get("brand_name", "A"))[:1]
+    prompt = build_flux_prompt(concept["style"], concept["subject"], letter, palette)
+    image = await generate_image(prompt, seed=random.randint(1, 2_000_000_000))
+    snap = list(palette.values()) if match_colors else None
+    svg = await asyncio.to_thread(image_to_logo_svg, image, snap)
+    return LogoIcon(name=concept["name"], concept=concept["concept"] or concept["subject"],
+                    style=concept["style"], source="flux", svg=svg).model_dump()
+
+
+async def generate_icons(brief: Brief, kit: dict, styles: list[str] | None = None,
+                         match_colors: bool = True) -> list[dict]:
+    """3 logo symbols. With Cloudflare: FLUX image → traced SVG. Otherwise: the LLM draws SVG code."""
+    styles = normalize_styles(styles, kit.get("personality"))
+    if image_configured():
+        concepts = await _plan_concepts(brief, kit, styles)
+        results = await asyncio.gather(*(_draw_and_trace(c, kit, match_colors) for c in concepts),
+                                       return_exceptions=True)
+        icons = [r for r in results if isinstance(r, dict)]
+        for r in results:
+            if isinstance(r, Exception):
+                log.warning("Image logo failed: %s", r)
+        if icons:
+            return icons
+        log.warning("All image logos failed; falling back to SVG drawing")
+    icons, _, _ = await generate_with_chain(LOGO_SYSTEM, build_logo_prompt(brief, kit, styles), _parse_icons(styles))
     return icons
 
 

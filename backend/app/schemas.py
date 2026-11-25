@@ -50,6 +50,8 @@ class ContrastCheck(BaseModel):
 class LogoIcon(BaseModel):
     name: str = ""
     concept: str = ""
+    style: str = ""          # minimal | geometric | mascot | emblem | lettermark | line | thai
+    source: str = "svg"      # flux = drawn by the image model and traced; svg = drawn as SVG code by the LLM
     svg: str
 
 
@@ -163,6 +165,14 @@ class KitEdit(BaseModel):
 
 class RefineIn(BaseModel):
     instruction: str = Field(min_length=3, max_length=300)
+
+
+LogoStyle = Literal["minimal", "geometric", "mascot", "emblem", "lettermark", "line", "thai"]
+
+
+class LogosIn(BaseModel):
+    styles: list[LogoStyle] = Field(default_factory=list, max_length=3)   # empty = choose automatically
+    match_colors: bool = True                                             # snap traced colours to the palette
 
 
 class SelectIcon(BaseModel):

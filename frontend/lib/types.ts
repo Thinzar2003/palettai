@@ -38,9 +38,13 @@ export interface BrandKit {
   social_posts: SocialPost[];
 }
 
+export type LogoStyle = "minimal" | "geometric" | "mascot" | "emblem" | "lettermark" | "line" | "thai";
+
 export interface LogoIcon {
   name: string;
   concept: string;
+  style: LogoStyle | "";
+  source: "flux" | "svg"; // flux = image model, traced to vector; svg = drawn as code
   svg: string; // sanitised by the backend
 }
 

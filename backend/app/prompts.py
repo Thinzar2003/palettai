@@ -79,32 +79,67 @@ def build_refine_prompt(brief, kit: dict, instruction: str) -> str:
     )
 
 
-LOGO_SYSTEM = """You are a senior logo designer. You draw simple, iconic, modern logo SYMBOLS as SVG code.
+LOGO_CONCEPT_SYSTEM = """You are the art director of a branding studio. For each requested logo style,
+invent a DISTINCT visual idea for the brand's logo symbol.
 
 Reply with ONE JSON object and nothing else:
-{"icons": [{"name": string, "concept": string, "svg": string}, ...]}   // exactly 3 icons
+{"icons": [{"style": string,       // copy the requested style id
+            "name": string,        // 2-4 word name for the idea
+            "concept": string,     // one sentence: why it fits the brand
+            "subject": string}]}   // 6-15 words: the concrete things to draw. Objects only, no text or letters.
 
-Each "svg" must:
-- be <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"> … </svg>
-- use ONLY these elements: path, circle, ellipse, rect, line, polyline, polygon, g
-- contain NO text, letters, images, scripts, styles, filters or gradients
-- use flat shapes (max ~12 elements), bold enough to read at 32px, centred with ~8 units of padding
-- use ONLY the colours given by the client
-
-Make the 3 icons clearly different: e.g. one literal symbol, one abstract geometric mark,
-one clever combination of two ideas. "concept" is one short sentence explaining the idea."""
+One entry per requested style, in the same order. Make the subjects clearly different from each other:
+combine the product, the place (Thailand when relevant) and the brand's personality in surprising ways."""
 
 
-def build_logo_prompt(brief, kit: dict) -> str:
-    colours = ", ".join(f'{c["hex"]} ({c["role"]})' for c in kit.get("palette", []))
-    logo = kit.get("logo", {})
+def build_logo_concept_prompt(brief, kit: dict, styles: list[str]) -> str:
+    from .logo_styles import LOGO_STYLES
+
     return (
         f"Brand: {kit.get('brand_name')} — {kit.get('tagline')}\n"
         f"What they do: {brief.description}\n"
+        f"Audience: {brief.audience or 'general'}\n"
         f"Personality: {', '.join(kit.get('personality', []))}\n"
-        f"Icon idea from the brand brief: {logo.get('symbol', '')} (style: {logo.get('style', '')})\n"
-        f"Colours you may use: {colours}. Prefer the primary colour; use the background colour only as negative space."
+        f"Keywords: {', '.join(kit.get('keywords', []))}\n"
+        f"First idea from the brief: {kit.get('logo', {}).get('symbol', '')}\n"
+        "Requested styles, in order: "
+        + "; ".join(f"{i + 1}. {s} ({LOGO_STYLES[s]['label']})" for i, s in enumerate(styles))
     )
+
+
+LOGO_SYSTEM = """You are a senior logo designer. You draw iconic, modern logo SYMBOLS as SVG code.
+
+Reply with ONE JSON object and nothing else:
+{"icons": [{"style": string, "name": string, "concept": string, "svg": string}, ...]}
+
+Draw exactly one icon per requested style, in the same order, and make them look clearly different.
+Each "svg" must:
+- be <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"> … </svg>
+- use ONLY: path, circle, ellipse, rect, line, polyline, polygon, g (linearGradient/radialGradient allowed, sparingly)
+- contain NO text elements, images, scripts or styles
+- be rich enough to look designed (8-25 elements, curves via path "C"/"Q" commands, overlaps and negative space),
+  yet readable at 32px, centred with ~8 units of padding
+- use ONLY the colours given by the client
+"concept" is one sentence explaining the idea."""
+
+
+def build_logo_prompt(brief, kit: dict, styles: list[str] | None = None) -> str:
+    from .logo_styles import LOGO_STYLES
+
+    colours = ", ".join(f'{c["hex"]} ({c["role"]})' for c in kit.get("palette", []))
+    logo = kit.get("logo", {})
+    letter = (logo.get("monogram") or kit.get("brand_name", "A"))[:1]
+    lines = [
+        f"Brand: {kit.get('brand_name')} — {kit.get('tagline')}",
+        f"What they do: {brief.description}",
+        f"Personality: {', '.join(kit.get('personality', []))}",
+        f"Icon idea from the brand brief: {logo.get('symbol', '')}",
+        f"Colours you may use: {colours}. Prefer the primary colour; use the background colour only as negative space.",
+    ]
+    if styles:
+        lines.append("Requested styles, in order: " + "; ".join(
+            f"{i + 1}. {s} — {LOGO_STYLES[s]['svg'].format(letter=letter)}" for i, s in enumerate(styles)))
+    return "\n".join(lines)
 
 
 SOCIAL_SYSTEM = """You are a social media manager for small businesses in Thailand.

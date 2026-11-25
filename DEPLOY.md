@@ -54,6 +54,7 @@ The tables are created automatically the first time the backend starts.
    - `DATABASE_URL`: the Neon connection string from step 2
    - `GEMINI_API_KEY`: your Gemini key
    - `GROQ_API_KEY` and `OPENROUTER_API_KEY`: optional backups (leave empty if you don't have them)
+   - `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN`: optional, turns on FLUX image logos (see below)
    - `SECRET_KEY` is generated for you.
 4. Click **Apply** and wait for the build (3–5 minutes).
 5. Copy the service URL, e.g. `https://palettai-api.onrender.com`, and open
@@ -97,3 +98,17 @@ git push
 ## Local development still works as before
 
 Without `DATABASE_URL`, the backend keeps using the local SQLite file, so your PC setup is unchanged.
+
+## AI image logos (Cloudflare Workers AI, free)
+
+Without these keys, logos are drawn as SVG code by the text AI. With them, FLUX draws each logo,
+and the backend traces it into a clean SVG in your brand colours.
+
+1. Sign up at **dash.cloudflare.com** (free).
+2. Left menu → **AI → Workers AI** → **Use REST API**.
+3. Copy your **Account ID**, then click **Create a Workers AI API Token** and copy the token.
+4. Add both to `backend/.env` locally, and on Render → *palettai-api → Environment*:
+   `CLOUDFLARE_ACCOUNT_ID=...` and `CLOUDFLARE_API_TOKEN=...`
+5. Check `<render-url>/health`: `logo_images` should show the FLUX model name.
+
+The free allowance resets every day; if it runs out, Palettai falls back to SVG drawing automatically.

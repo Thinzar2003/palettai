@@ -7,7 +7,18 @@ import Spinner from "./Spinner";
 import Tilt from "./Tilt";
 import { api } from "@/lib/api";
 import { downloadBlob, downloadText, lockupSvg, slugFile, svgToPng } from "@/lib/download";
-import { colorOf, type BrandDetail, type BrandKit } from "@/lib/types";
+import { colorOf, type BrandDetail, type BrandKit, type LogoStyle } from "@/lib/types";
+
+const STYLES: { id: LogoStyle; label: string; icon: string }[] = [
+  { id: "minimal", label: "Minimal", icon: "◯" },
+  { id: "geometric", label: "Geometric", icon: "◆" },
+  { id: "mascot", label: "Mascot", icon: "🐱" },
+  { id: "emblem", label: "Emblem", icon: "🏅" },
+  { id: "lettermark", label: "Lettermark", icon: "Ⓐ" },
+  { id: "line", label: "Line art", icon: "〰" },
+  { id: "thai", label: "Thai motif", icon: "🪷" },
+];
+const styleLabel = (id: string) => STYLES.find((s) => s.id === id)?.label ?? "";
 
 export default function LogoStudio({
   brandId,
@@ -23,6 +34,10 @@ export default function LogoStudio({
   onError: (msg: string) => void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [styles, setStyles] = useState<LogoStyle[]>([]);
+  const [matchColors, setMatchColors] = useState(true);
+  const toggleStyle = (id: LogoStyle) =>
+    setStyles((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length < 3 ? [...s, id] : s));
   const primary = colorOf(kit, "primary");
   const secondary = colorOf(kit, "secondary");
   const bg = colorOf(kit, "background");
@@ -35,7 +50,7 @@ export default function LogoStudio({
   const generate = async () => {
     setBusy(true);
     try {
-      onChange(await api.makeLogos(brandId), true);
+      onChange(await api.makeLogos(brandId, styles, matchColors), true);
     } catch (e) {
       onError(e instanceof Error ? e.message : "Logo generation failed");
     } finally {
@@ -89,13 +104,56 @@ export default function LogoStudio({
               onClick={generate}
               className="mt-5 rounded-full bg-studio-accent px-6 py-3 font-semibold text-on-accent shadow-lg shadow-studio-accent/30 disabled:opacity-50"
             >
-              {busy ? "Drawing logos…" : icons.length ? "↻ Draw 3 new icons" : "✒️ Generate 3 logo icons"}
+              {busy ? "Designing logos…" : icons.length ? "↻ Design 3 new logos" : "✒️ Design 3 logos"}
             </motion.button>
           )}
         </div>
       </div>
 
-      {busy && <Spinner label="The AI is sketching vector icons…" />}
+      {!readOnly && (
+        <div className="rounded-3xl border border-black/10 bg-white p-5">
+          <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+            <p className="font-display text-lg font-bold">Logo styles</p>
+            <p className="text-xs text-black/45">
+              Pick up to 3 (one logo each). None picked = we choose for you.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {STYLES.map((st) => {
+              const on = styles.includes(st.id);
+              const n = styles.indexOf(st.id) + 1;
+              return (
+                <motion.button
+                  key={st.id}
+                  type="button"
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => toggleStyle(st.id)}
+                  disabled={busy || (!on && styles.length >= 3)}
+                  className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm transition disabled:opacity-40 ${
+                    on ? "bg-studio-ink text-white" : "border border-black/15 hover:bg-black/5"
+                  }`}
+                >
+                  <span>{st.icon}</span>
+                  {st.label}
+                  {on && (
+                    <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }}
+                      className="ml-1 flex h-4 w-4 items-center justify-center rounded-full bg-studio-accent text-[10px] text-on-accent">
+                      {n}
+                    </motion.span>
+                  )}
+                </motion.button>
+              );
+            })}
+          </div>
+          <label className="mt-4 flex cursor-pointer items-center gap-2 text-sm text-black/70">
+            <input type="checkbox" checked={matchColors} onChange={(e) => setMatchColors(e.target.checked)}
+              className="h-4 w-4 accent-[var(--color-studio-accent)]" />
+            Match brand colours <span className="text-xs text-black/40">(recolour logos with your palette)</span>
+          </label>
+        </div>
+      )}
+
+      {busy && <Spinner label="Sketching concepts → drawing with FLUX → tracing to vector…" />}
 
       {!busy && icons.length > 0 && (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
@@ -125,6 +183,12 @@ export default function LogoStudio({
                     </button>
                     <div className="mt-4 flex items-start justify-between gap-2">
                       <div>
+                        <div className="mb-1 flex flex-wrap gap-1 text-[10px] font-medium uppercase tracking-wider">
+                          {icon.style && <span className="rounded-full bg-black/5 px-2 py-0.5 text-black/55">{styleLabel(icon.style)}</span>}
+                          <span className="rounded-full bg-black/5 px-2 py-0.5 text-black/55">
+                            {icon.source === "flux" ? "AI image → vector" : "AI-drawn SVG"}
+                          </span>
+                        </div>
                         <p className="font-semibold">{icon.name || `Icon ${i + 1}`}</p>
                         <p className="text-sm text-black/55">{icon.concept}</p>
                       </div>

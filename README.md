@@ -14,7 +14,7 @@ A full-stack AI web app: describe a business and get a complete brand kit (palet
 - **Version history:** every generation is saved. Preview any version and restore it.
 - **Share:** make a brand public and send the `/b/<slug>` link to a client.
 - **Export:** download any version as JSON.
-- **AI logo icons:** the AI draws 3 vector logo symbols (SVG, sanitised server-side). Pick one, download it as SVG, PNG, or a logo + name lockup.
+- **AI logo pipeline:** pick up to 3 styles (minimal, geometric, mascot, emblem, lettermark, line art, Thai motif). The text AI plans a distinct concept per style, **FLUX** (Cloudflare Workers AI) draws it, then the backend removes the background, traces it to SVG with **vtracer**, snaps every colour to the brand palette and sanitises the result. Falls back to LLM-drawn SVG when image generation is unavailable. Download as SVG, PNG, or a logo + name lockup.
 - **Social post pack:** 7 days of Instagram/Facebook posts in 4 layouts, with Thai/English captions and hashtags. Export each as a 1080×1080 PNG.
 - **Brand guide PDF:** a 6-page A4 brand guide (cover, story, logo, colours, typography, voice & social), saved via the browser's "Save as PDF".
 - **Edit by hand:** colour pickers, font pickers and text fields. Every save is a new version.
@@ -108,6 +108,9 @@ backend/app/
   llm.py             free-provider chain with retries/fallback
   prompts.py · colors.py · fonts.py · mock.py
   svg.py             whitelist sanitiser for AI-generated SVG
+  imagegen.py        FLUX image generation (Cloudflare Workers AI)
+  vectorize.py       background removal → vtracer → palette snapping
+  logo_styles.py     logo style directions + prompt builder
 frontend/
   app/               pages (landing, auth, dashboard, new brand, brand workspace, public page)
   components/        BrandWorkspace, LockBar, VersionHistory, BrandCard, BrandReveal, PalettePour, …

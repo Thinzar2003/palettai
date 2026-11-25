@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 import xml.etree.ElementTree as ET
+from collections.abc import Callable
 
 SVG_NS = "http://www.w3.org/2000/svg"
 
@@ -45,8 +46,19 @@ def _clean_value(value: str) -> str | None:
     return value[:2000]
 
 
-def sanitize_svg(raw: str) -> str:
-    if not raw or len(raw) > MAX_LEN:
+def _number(value: str | None) -> float | None:
+    m = re.match(r"^\s*([0-9]+(?:\.[0-9]+)?)\s*(px)?\s*$", value or "")
+    return float(m.group(1)) if m else None
+
+
+def sanitize_svg(
+    raw: str,
+    max_len: int = MAX_LEN,
+    max_elements: int = MAX_ELEMENTS,
+    recolor: Callable[[str], str | None] | None = None,
+) -> str:
+    """`recolor(fill_hex)` may return a new colour, or None to drop that shape entirely."""
+    if not raw or len(raw) > max_len:
         raise SvgError("SVG missing or too large")
     if "<!DOCTYPE" in raw or "<!ENTITY" in raw:
         raise SvgError("DOCTYPE/ENTITY not allowed")
@@ -66,9 +78,6 @@ def sanitize_svg(raw: str) -> str:
         tag = _local(node.tag)
         if tag not in ALLOWED_TAGS:
             return None
-        count += 1
-        if count > MAX_ELEMENTS:
-            raise SvgError("SVG too complex")
         out = ET.Element(tag)
         for k, v in node.attrib.items():
             name = _local(k)
@@ -76,6 +85,14 @@ def sanitize_svg(raw: str) -> str:
                 cleaned = _clean_value(v)
                 if cleaned is not None:
                     out.set(name, cleaned)
+        if recolor and tag != "svg" and out.get("fill", "").startswith("#"):
+            new = recolor(out.get("fill", ""))
+            if new is None:
+                return None
+            out.set("fill", new)
+        count += 1
+        if count > max_elements:
+            raise SvgError("SVG too complex")
         for child in node:
             c = copy(child)
             if c is not None:
@@ -87,8 +104,10 @@ def sanitize_svg(raw: str) -> str:
         raise SvgError("Root must be <svg>")
     if len(root) == 0:
         raise SvgError("SVG has no shapes")
+    if not root.get("viewBox"):
+        w, h = _number(root.get("width")), _number(root.get("height"))
+        root.set("viewBox", f"0 0 {w:g} {h:g}" if w and h else "0 0 100 100")
     root.attrib.pop("width", None)
     root.attrib.pop("height", None)
-    root.set("viewBox", root.get("viewBox") or "0 0 100 100")
     root.set("xmlns", SVG_NS)
     return ET.tostring(root, encoding="unicode")
